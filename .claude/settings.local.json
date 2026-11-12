@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git remote add origin https://github.com/sarah-mendoza-assurant/senior-ux-designer.git)",
+      "Bash(git push -u origin feat/initial-site:main)"
+    ]
+  }
+}
