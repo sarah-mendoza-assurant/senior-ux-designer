@@ -1,0 +1,20 @@
+{
+  "_help": "Growth and development content. Evidence gaps are also derived automatically on the site from criteria with no evidence or only unsourced evidence.",
+  "openQuestions": [
+    "Which criteria does the manager expect to see first-hand evidence for?",
+    "Are there artifacts with shareable links (Figma, prototypes) to attach to the Agent Portal and Assurant Assist pages?",
+    "Is there written developer or stakeholder feedback that can back up claims from the brief?"
+  ],
+  "knownGrowthAreas": [
+    { "criterionId": "ui-02", "note": "Prior-year note on Accessibility: \"Need work overall\". No current evidence linked yet." },
+    { "criterionId": "ui-10", "note": "Front End Language has no current evidence linked." },
+    { "criterionId": "lead-04", "note": "Prior-year note: \"Follow through once its live\". Agent Portal 3.0 is not yet launched; Assurant Assist post-launch work needs a measured example." },
+    { "criterionId": "biz-03", "note": "Prior-year self-rating for ambiguity was Novice. Needs a concrete example." }
+  ],
+  "nextSteps": [
+    "Write criterion justifications one at a time, starting with criteria that already have source-backed evidence.",
+    "Add sources (links, quotes, messages) for evidence marked 'From brief, needs source'.",
+    "Add shareable links to original artifacts on both project pages.",
+    "Plan post-launch measurement for Agent Portal 3.0 so results can replace design intent."
+  ]
+}

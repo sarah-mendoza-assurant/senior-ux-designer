@@ -1,0 +1,250 @@
+{
+  "_help": "Current assessments, one entry per criterion id. status: not-assessed | developing | meets | exceeds. justification is third person and grounded in specific evidence. justificationState: none | draft | final. Do not set a status without a justification grounded in linked evidence.",
+  "assessments": {
+    "ui-01": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ui-02": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ui-03": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ui-04": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ui-05": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ui-06": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ui-07": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ui-08": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ui-09": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ui-10": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ui-11": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ux-01": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ux-02": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ux-03": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ux-04": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ux-05": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ux-06": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "ux-07": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "pt-01": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "pt-02": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "pt-03": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "pt-04": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "pt-05": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "own-01": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "own-02": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "lead-01": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "lead-02": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "lead-03": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "lead-04": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "biz-01": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "biz-02": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "biz-03": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "data-01": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "data-02": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    },
+    "data-03": {
+      "status": "not-assessed",
+      "justificationState": "none",
+      "justification": "",
+      "confidence": "",
+      "developmentNotes": ""
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "_help": "Project pages. Evidence shown on each page is pulled from evidence.json by project id. Add real links to artifacts[].url when available.",
+  "projects": [
+    {
+      "id": "agent-portal-3",
+      "name": "Home Warranty Agent Portal 3.0",
+      "featured": true,
+      "role": "Lead designer, end to end",
+      "period": "2026",
+      "status": "Detailed design nearly complete; development underway. No post-launch results yet.",
+      "headline": "The clearest recent example of strategic thinking, independent end-to-end ownership, and influence beyond assigned requirements.",
+      "summary": "The Agent Portal lets real estate agents and transaction coordinators (TCs) create and manage home warranty orders during the home buying process. The initial scope was a set of individual enhancements. Sarah saw the opportunity for a cohesive 3.0 experience, aligned stakeholders through journey mapping and rapid prototyping, validated the direction with six TCs, and completed detailed design for development.",
+      "arc": [
+        { "step": "Problem", "text": "A growing roadmap of enhancements (TC access, order status, dashboard and quick actions, enhanced order journey) with no shared view of how they would work together. TC research showed friction: no stepper, no filtering or robust search, hard-to-find orders, editing that required contacting support, slow order creation, no closing-date prioritization." },
+        { "step": "Reframe", "text": "Reviewed TC research, workflows, planned enhancements and competitor portals, then proposed one unified product direction instead of separate features." },
+        { "step": "Align", "text": "Built a rapid Magic Patterns prototype of the dashboard, order management and order creation to align stakeholders; participated in the Atlanta stakeholder workshop." },
+        { "step": "Validate", "text": "Six TCs reviewed the prototype in follow-up sessions. Feedback emphasized simplicity, workflow clarity, dashboard actions, order discovery and pricing transparency." },
+        { "step": "Detail", "text": "Owned detailed design of the dashboard, quote and order flows, listing coverage, agent search and addition, address search, plan selection, payment, order management, responsive mobile states, and edge cases. Provided annotated Figma flows and a Claude prototype during repeated development refinement." }
+      ],
+      "limitations": [
+        "Development is underway. No post-launch customer experience gains are claimed.",
+        "TC feedback is pre-launch prototype validation, not usage data.",
+        "The ~63% reduction in stakeholder alignment time is an estimate against a typical four-week process, not a controlled measurement.",
+        "Developer praise for clarity and detail is from the brief and still needs a source."
+      ],
+      "artifacts": [
+        { "label": "UX Case Study - HW Agent Portal - Redesign Overview (PDF)", "url": null, "note": "Local file; add a shareable link" },
+        { "label": "TC Prototype Results (DOCX)", "url": null, "note": "Local file; add a shareable link" },
+        { "label": "Original Magic Patterns prototype", "url": null, "note": "Link not yet added" },
+        { "label": "Dashboard: dev handoff (Figma)", "url": null, "note": "Link not yet added" },
+        { "label": "Orders: dev handoff (Figma)", "url": null, "note": "Link not yet added" }
+      ],
+      "nextSteps": ["Finish development handoff", "Agent Portal 3.0 implementation", "Post-launch analytics and usability measurement"]
+    },
+    {
+      "id": "assurant-assist",
+      "name": "Assurant Assist",
+      "featured": false,
+      "role": "Owner of the device journey; collaborator on the broader application",
+      "period": "Across Sarah's tenure; case study May 2026",
+      "status": "Launched. Post-launch iteration ongoing.",
+      "headline": "Evidence of journey ownership, cross-designer collaboration, launch delivery and post-launch iteration.",
+      "summary": "Sarah owned the end-to-end device journey (device search, add device and related functionality), contributed to Help & Support, and collaborated with other designers to deliver a unified new application experience. Ownership applies to the device journey, not to the whole of Assurant Assist.",
+      "arc": [
+        { "step": "Launch", "text": "Applied agency research and observations, UX best practices, detailed edge-case design and cross-functional collaboration to support the initial application launch." },
+        { "step": "Learn", "text": "Analyzed 30 days of one-session data for mobile-only clients: 71% chose category selection and 17% chose type-ahead search when adding a device. Of those who chose each method, 52% saved a device via category selection and 74% via type-ahead search." },
+        { "step": "Improve", "text": "Concluded that search should be as apparent as browse by category, and updated the design so search has similar hierarchy. Redesigned the Getting Started add-devices flow for immediate feedback and adding multiple devices, using peer review and Figma Make." },
+        { "step": "Measure", "text": "Proactively reviewed Mixpanel behavior, identified analytics tracking gaps and helped add or improve tracking. Planned measures for the Getting Started flow: devices added and drop-off rate." }
+      ],
+      "limitations": [
+        "The 71% / 17% and 52% / 74% figures are baseline observations (30 days, one session, mobile-only clients). They are not gains from the design change.",
+        "Results from the search and Getting Started changes are not yet reported.",
+        "Do not describe Sarah as owner of the whole application; other designers delivered other parts.",
+        "Mixpanel work and post-launch fixes come from the brief and need sources."
+      ],
+      "artifacts": [
+        { "label": "UX Case Study - Adding Devices - North Star (PDF)", "url": null, "note": "Local file; add a shareable link" },
+        { "label": "Complete device search flow (prototype)", "url": null, "note": "Link not yet added" },
+        { "label": "Getting Started - Add Device flow (prototype)", "url": null, "note": "Link not yet added" }
+      ],
+      "nextSteps": ["Monitor live search-prominence changes and decide whether to revisit for a Home product launch", "Track devices added and drop-off in the Getting Started flow"]
+    }
+  ]
+}

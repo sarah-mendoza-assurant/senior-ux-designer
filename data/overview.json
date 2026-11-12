@@ -1,0 +1,23 @@
+{
+  "_help": "Overview page content. Keep it factual and in third person. topEvidence lists evidence ids in display order.",
+  "title": "Senior UX Designer Promotion Assessment",
+  "subject": "Sarah Mendoza",
+  "currentRole": "UX Designer",
+  "targetRole": "Senior UX Designer",
+  "company": "Assurant",
+  "updated": "2026-11",
+  "purpose": "A read-only review of Sarah Mendoza's work against Assurant's Senior UX Designer expectations. Criteria and expectation wording come directly from the official workbook. Assessments, justifications and evidence are added over time; this site does not calculate a promotion decision.",
+  "summary": "Evidence is assembled from two projects: Home Warranty Agent Portal 3.0 (featured) and Assurant Assist, plus other team contributions. Current assessments have not been made yet, so every criterion shows 'Not assessed' until a justification is written and grounded in evidence.",
+  "topEvidence": [
+    "ev-ap-unified-vision",
+    "ev-ap-stakeholder-alignment",
+    "ev-ap-tc-validation",
+    "ev-ap-detailed-design",
+    "ev-as-category-analysis"
+  ],
+  "readingNotes": [
+    "Prior-year self-ratings were recorded about a year ago and are shown separately from current assessments.",
+    "Estimates are labeled as estimates. Pre-launch validation is not post-launch impact.",
+    "Evidence marked 'From brief, needs source' has not yet been backed by a document."
+  ]
+}
