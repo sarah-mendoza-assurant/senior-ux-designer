@@ -16,11 +16,12 @@ Static website (plain HTML, CSS and JS) for Sarah Mendoza's Senior UX Designer p
 - Keep user-entered text escaped when rendering (the `html` helper does this) and only allow `http(s)` links.
 
 ## How the site works
-- **Assessment** (landing page): sticky sidebar of the seven workbook categories; four-column table (Requirement, Sr UXD expectation, My assessment, Supporting evidence). Columns are 20/24/12/44%, stacked on mobile.
+- **Assessment** (landing page): sticky sidebar of the seven workbook categories; four-column table (Requirement, Sr UXD expectation, My assessment, Supporting evidence). Columns are 20/15/13/52%, stacked on mobile.
 - **My assessment** is a dropdown of the workbook's mastery scale (Mastery, Proficient, Competent, Novice) with a "Not assessed" default. The list shows each title with its workbook meaning; the chosen value shows as a styled pill. The Sr UXD expectation column is fixed text and shows a matching styled pill when its text is exactly one of those levels.
 - **Supporting evidence**: editable text plus links. A link is either an external URL or an entry from the Evidence tab; entry links open `#/evidence/<id>` in a new tab and scroll to that entry.
 - **Comments**: "Add comment" under each requirement adds its own row tied to that requirement.
-- **Evidence tab**: all evidence entries (baseline from `data/evidence.json` plus entries added on the site). Anyone can add or edit entries; only added entries can be deleted.
+- **Navigation**: no top nav; Assessment is the home page. Evidence is a small footer link, and its page has a Back to assessment button. Project pages (`#/projects`) are kept but not linked anywhere; evidence shows project names as plain text.
+- **Evidence page**: all evidence entries (baseline from `data/evidence.json` plus entries added on the site). Anyone can add or edit entries; only added entries can be deleted.
 - Font: Open Sans only, self-hosted in `assets/fonts` (SIL OFL, `OFL.txt`). Colors are CSS variables at the top of `assets/styles.css`.
 
 ## Where content lives

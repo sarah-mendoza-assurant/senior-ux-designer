@@ -16,7 +16,7 @@
     estimate: ["est", "Estimate, not measured"],
   };
   const TYPES = ["Case study", "Research / validation", "Design artifact", "Collaboration", "Analytics", "Training", "Process", "Other"];
-  const S = { data: null, online: false, fs: { a: {}, e: {}, c: [] }, ui: { ev: {}, cmtOpen: {}, cmtEdit: null, evForm: null } };
+  const S = { data: null, online: false, fs: { a: {}, e: {}, c: [], overall: null }, ui: { ev: {}, cmtOpen: {}, cmtEdit: null, evForm: null, ov: null } };
 
   // ---------- helpers ----------
   const esc = (s) =>
@@ -137,6 +137,7 @@
         if (id.startsWith("a_")) S.fs.a[id.slice(2)] = fields;
         else if (id.startsWith("e_")) S.fs.e[id.slice(2)] = fields;
         else if (id.startsWith("c_")) S.fs.c.push({ id, ...fields });
+        else if (id === "overall") S.fs.overall = fields;
       });
       S.online = true;
     } catch (err) { S.online = false; }
@@ -190,8 +191,9 @@
     const label = cur ? levelPill(cur) : html`<span class="lvl-pill lvl-none">Not assessed</span>`;
     const prior = c.priorRating ? html`<span class="prior">Prior year: ${c.priorRating}</span>` : "";
     if (!S.online) return html`${label}${prior}`;
+    const chevPill = html`<span class="lvl-pill ${cur ? lvlCls(cur) : "lvl-none"}">${cur || "Not assessed"}<span class="chev" aria-hidden="true">▾</span></span>`;
     return html`<div class="lvl">
-      <button type="button" class="lvl-btn" data-act="lvl-toggle" aria-haspopup="listbox" aria-expanded="false" aria-label="My assessment for ${c.title}: ${cur || "Not assessed"}">${label}<span class="chev" aria-hidden="true">▾</span></button>
+      <button type="button" class="lvl-btn" data-act="lvl-toggle" aria-haspopup="listbox" aria-expanded="false" aria-label="My assessment for ${c.title}: ${cur || "Not assessed"}">${chevPill}</button>
       <div class="lvl-menu" role="listbox" hidden>
         <button type="button" role="option" class="lvl-opt" data-act="lvl-pick" data-cid="${c.id}" data-v=""><span class="lvl-pill lvl-none">Not assessed</span><span class="lvl-key">No rating yet</span></button>
         ${S.data.levels.map((l) => html`<button type="button" role="option" class="lvl-opt" data-act="lvl-pick" data-cid="${c.id}" data-v="${l.level}" aria-selected="${cur === l.level}"><span class="lvl-pill ${lvlCls(l.level)}">${l.level}</span><span class="lvl-key">${l.meaning}</span></button>`)}
@@ -222,13 +224,14 @@
     if (d) {
       const evOpts = allEvidence().map((e) => html`<option value="${e.id}">${cut(e.title, 70)}</option>`);
       return html`<div class="ev-edit">
-        <label class="sr-only" for="ta-${cid}">Supporting evidence for ${c.title}</label>
+        <label class="fld" for="ta-${cid}"><span>Supporting evidence</span></label>
         <textarea id="ta-${cid}" class="ta" rows="5" data-draft data-cid="${cid}" placeholder="How does this work demonstrate the requirement? 1-3 sentences.">${d.text}</textarea>
         <ul class="ev-links editing">${d.links.map((l, i) => html`<li>${linkItem(l, true)}<button type="button" class="x" data-act="ev-rm" data-cid="${cid}" data-i="${i}" aria-label="Remove link">×</button></li>`)}</ul>
-        <div class="field-row"><select class="in" data-pick="${cid}" aria-label="Link to an evidence entry"><option value="">Link to an evidence entry…</option>${evOpts}</select>
-          <input class="in" data-etitle="${cid}" placeholder="Title (optional)" aria-label="Title for the evidence link">
+        <div class="field-row"><label class="fld grow"><span>Link to an evidence entry</span><select class="in" data-pick="${cid}"><option value="">Choose an entry…</option>${evOpts}</select></label>
+          <label class="fld grow"><span>Link title (optional)</span><input class="in" data-etitle="${cid}" placeholder="Title"></label>
           <button type="button" class="mini" data-act="ev-add-ev" data-cid="${cid}">Add</button></div>
-        <div class="field-row"><input class="in" data-lbl="${cid}" placeholder="Title" aria-label="Link title"><input class="in" data-url="${cid}" placeholder="https://…" aria-label="Link address">
+        <div class="field-row"><label class="fld grow"><span>Link title</span><input class="in" data-lbl="${cid}" placeholder="Title"></label>
+          <label class="fld grow"><span>Link address</span><input class="in" data-url="${cid}" placeholder="https://…"></label>
           <button type="button" class="mini" data-act="ev-add-url" data-cid="${cid}">Add link</button></div>
         <div class="actions"><button type="button" class="btn sm" data-act="ev-save" data-cid="${cid}">Save</button>
           <button type="button" class="btn-ghost sm" data-act="ev-cancel" data-cid="${cid}">Cancel</button></div>
@@ -245,7 +248,7 @@
     const cid = c.id, list = commentsFor(cid);
     const item = (m) => {
       if (S.ui.cmtEdit === m.id) return commentForm(cid, m);
-      return html`<div class="cmt"><div class="cmt-meta"><strong>${m.name || "Anonymous"}</strong>${m.created ? html` · ${fmtDate(m.created)}` : ""}
+      return html`<div class="cmt"><div class="cmt-meta">${m.name ? html`<strong>${m.name}</strong>` : ""}${m.created ? html`${m.name ? " · " : ""}${fmtDate(m.created)}` : ""}
         ${S.online ? html`<button type="button" class="mini icon-btn" data-act="cmt-edit" data-id="${m.id}" data-cid="${cid}" aria-label="Edit comment">${ICON_EDIT}Edit</button><button type="button" class="mini" data-act="cmt-del" data-id="${m.id}" data-cid="${cid}">Delete</button>` : ""}</div>
         <p>${m.text}</p></div>`;
     };
@@ -258,8 +261,8 @@
   }
   function commentForm(cid, m) {
     return html`<div class="cmt-form">
-      <input class="in" data-cname placeholder="Your name (optional)" aria-label="Your name" value="${m ? m.name || "" : store.get("ux-name")}">
-      <textarea class="ta" rows="3" data-ctext placeholder="Add a comment" aria-label="Comment">${m ? m.text : ""}</textarea>
+      <label class="fld"><span>Title</span><input class="in" data-cname placeholder="Title" value="${m ? m.name || "" : ""}"></label>
+      <label class="fld"><span>Comment</span><textarea class="ta" rows="3" data-ctext placeholder="Add a comment">${m ? m.text : ""}</textarea></label>
       <div class="actions"><button type="button" class="btn sm" data-act="cmt-save" data-cid="${cid}" data-id="${m ? m.id : ""}">Save</button>
         <button type="button" class="btn-ghost sm" data-act="cmt-cancel" data-cid="${cid}">Cancel</button></div></div>`;
   }
@@ -289,14 +292,11 @@
   }
 
   function sidebar(activeCat) {
-    return html`<aside class="sidebar" aria-label="Activity sections">
-      <h2>Activity Sections</h2>
+    return html`<aside class="sidebar" aria-label="Activity">
+      <h2>Activity</h2>
       <p class="sub">From Senior UX Designer Workbook</p>
       <ul>${S.data.criteria.categories.map((cat) => html`<li class="cat"><a href="#/assessment/${cat.id}" ${
         cat.id === activeCat ? raw('aria-current="page"') : ""}><span>${cat.name}</span><span class="count">${cat.criteria.length}</span></a></li>`)}</ul>
-      <div class="group"><h3>Project evidence</h3>
-        ${S.data.projects.map((p) => html`<a href="#/projects/${p.id}">${p.name}</a>`)}
-      </div>
     </aside>`;
   }
   const withSidebar = (activeCat, content) => html`<div class="layout">${sidebar(activeCat)}<section class="content">${content}</section></div>`;
@@ -309,7 +309,7 @@
       <div class="chips"><span class="tag">${e.type}</span>${verifTag(e.verification)}${e.date ? html`<span class="tag">${fmtEvDate(e.date)}</span>` : ""}</div>
       <h3>${e.title}</h3>
       <dl>
-        <dt>Project</dt><dd>${e.project ? html`<a href="#/projects/${e.project}">${projName(e.project)}</a>` : html`Other contributions`}</dd>
+        <dt>Project</dt><dd>${projName(e.project)}</dd>
         ${e.contribution ? html`<dt>What I did</dt><dd class="verbatim">${e.contribution}</dd>` : ""}
         ${e.outcome ? html`<dt>Outcome / impact</dt><dd class="verbatim">${e.outcome}</dd>` : ""}
         ${e.source && (e.source.label || safeUrl(e.source.url)) ? html`<dt>Source</dt><dd>${e.source.label}${e.source.pages ? html` (${e.source.pages})` : ""}${
@@ -348,19 +348,12 @@
     const cat = S.data.criteria.categories.find((c) => c.id === catId) || S.data.criteria.categories[0];
     const o = S.data.overview;
     return withSidebar(cat.id, html`
-      <div class="intro">
-        <p class="eyebrow">${o.subject} · ${o.currentRole} to ${o.targetRole}</p>
-        <p class="lead">${o.purpose}</p>
-        <p class="muted">Updated: <span id="updated-at">${updatedText()}</span></p>
-      </div>
-      <p class="eyebrow">Activity section</p>
       <div class="section-head">
         <h1 class="cat-h">${cat.name}</h1>
         <div class="meta"><span>${cat.criteria.length} requirements</span></div>
       </div>
       ${S.online ? "" : html`<p class="note">Saved edits couldn't be loaded, so you're seeing the original content and editing is off. Refresh to try again.</p>`}
-      ${assessmentTable(cat)}
-      <p class="muted" style="margin-top:20px">Prior-year ratings were recorded about a year ago and are shown for reference. ${S.online ? "Changes you make here are saved to a shared database and are visible to everyone with the link." : ""}</p>`);
+      ${assessmentTable(cat)}`);
   }
 
   function viewEvidence(focusId) {
@@ -370,6 +363,7 @@
     const items = allEvidence();
     const groups = [...S.data.projects.map((p) => [p.name, items.filter((e) => e.project === p.id)]), ["Other contributions", items.filter((e) => !e.project || !S.data.projById[e.project])]];
     return html`<div class="page">
+      <p class="crumbs" style="margin-top:0"><a class="btn-back" href="#/assessment">← Back to assessment</a></p>
       <h1>Evidence</h1>
       <p class="lead">${o.summary}</p>
       <div class="stats">
@@ -381,6 +375,47 @@
       ${S.ui.evForm === "new" ? evidenceForm(null) : ""}
       <p class="muted">Each entry has its own anchor. On the Assessment page, use "Edit evidence" on a row to link to an entry; the link opens it here in a new tab.</p>
       ${groups.map(([name, list]) => list.length ? html`<h2>${name} (${list.length})</h2>${list.map((e) => evidenceBlock(e, { editable: true }))}` : "")}
+    </div>`;
+  }
+
+  const ovSections = () => (S.fs.overall && Array.isArray(S.fs.overall.sections) ? S.fs.overall.sections : []);
+  function ovLinks(links) {
+    const items = (links || []).map((l) => linkItem(l)).filter((x) => x !== "");
+    return items.length ? html`<ul class="ev-links">${items.map((l) => html`<li>${l}</li>`)}</ul>` : "";
+  }
+  function viewOverall() {
+    const d = S.ui.ov;
+    const head = html`<div class="ov-head"><h1 class="cat-h">Summary</h1>
+      ${S.online && !d ? html`<button type="button" class="pill-btn" data-act="ov-edit">${ICON_EDIT}Edit</button>` : ""}</div>`;
+    if (!d) {
+      const secs = ovSections();
+      return html`<div class="content ov">${head}
+        ${S.online ? "" : html`<p class="note">Saved edits couldn't be loaded, so editing is off. Refresh to try again.</p>`}
+        ${secs.length ? secs.map((x) => html`<section class="ov-sec">${x.title ? html`<h2>${x.title}</h2>` : ""}
+          ${x.text ? html`<p class="ev-text">${x.text}</p>` : ""}${ovLinks(x.links)}</section>`)
+          : html`<p class="none-yet">Nothing written yet. Use Edit to summarize strengths and what is brought to a senior position.</p>`}
+      </div>`;
+    }
+    const evOpts = allEvidence().map((e) => html`<option value="${e.id}">${cut(e.title, 70)}</option>`);
+    return html`<div class="content ov">${head}
+      ${d.sections.map((x, i) => html`<div class="ov-edit">
+        <div class="ov-tools"><span class="muted">Section ${i + 1}</span>
+          <span><button type="button" class="mini" data-act="ov-up" data-i="${i}" ${i === 0 ? raw("disabled") : ""} aria-label="Move section up">↑</button>
+          <button type="button" class="mini" data-act="ov-down" data-i="${i}" ${i === d.sections.length - 1 ? raw("disabled") : ""} aria-label="Move section down">↓</button>
+          <button type="button" class="mini" data-act="ov-rm" data-i="${i}">Remove section</button></span></div>
+        <label class="fld"><span>Section title (optional)</span><input class="in" data-ov="title" data-i="${i}" placeholder="Title" value="${x.title}"></label>
+        <label class="fld"><span>Section text</span><textarea class="ta" rows="7" data-ov="text" data-i="${i}" placeholder="Write here. Press Enter for line breaks.">${x.text}</textarea></label>
+        <ul class="ev-links editing">${x.links.map((l, j) => html`<li>${linkItem(l, true)}<button type="button" class="x" data-act="ov-rmlink" data-i="${i}" data-j="${j}" aria-label="Remove link">×</button></li>`)}</ul>
+        <div class="field-row"><label class="fld grow"><span>Link to an evidence entry</span><select class="in" data-ovpick="${i}"><option value="">Choose an entry…</option>${evOpts}</select></label>
+          <label class="fld grow"><span>Link title (optional)</span><input class="in" data-ovetitle="${i}" placeholder="Title"></label>
+          <button type="button" class="mini" data-act="ov-addev" data-i="${i}">Add</button></div>
+        <div class="field-row"><label class="fld grow"><span>Link title</span><input class="in" data-ovlbl="${i}" placeholder="Title"></label>
+          <label class="fld grow"><span>Link address</span><input class="in" data-ovurl="${i}" placeholder="https://…"></label>
+          <button type="button" class="mini" data-act="ov-addurl" data-i="${i}">Add link</button></div>
+      </div>`)}
+      <div class="actions"><button type="button" class="btn-ghost sm" data-act="ov-add">+ Add section</button></div>
+      <div class="actions"><button type="button" class="btn sm" data-act="ov-save">Save</button>
+        <button type="button" class="btn-ghost sm" data-act="ov-cancel">Cancel</button></div>
     </div>`;
   }
 
@@ -415,7 +450,7 @@
       ${a.justification ? html`<h3>Promotion justification</h3><p class="verbatim">${a.justification}</p>` : ""}
 
       <h2>Supporting evidence</h2>
-      ${evTextOf(id) ? html`<p>${evTextOf(id)}</p>` : html`<p class="empty">No evidence added yet.</p>`}
+      ${evTextOf(id) ? html`<p class="verbatim">${evTextOf(id)}</p>` : html`<p class="empty">No evidence added yet.</p>`}
       ${links.length ? html`<ul class="ev-links">${links.map((l) => html`<li>${l}</li>`)}</ul>` : ""}
       ${ev.length ? html`<h2>Related evidence entries (${ev.length})</h2>${ev.map((e) => evidenceBlock(e))}` : ""}
 
@@ -537,7 +572,6 @@
       const cid = b.dataset.cid, id = b.dataset.id, scope = $(`tbody[data-cid="${cid}"]`);
       const text = $("[data-ctext]", scope).value.trim(), name = $("[data-cname]", scope).value.trim();
       if (!text) { toast("Write a comment first.", true); return; }
-      store.set("ux-name", name);
       if (id) {
         if (!(await save(fsSet(id, { text, name }, ["text", "name"])))) return;
         const m = S.fs.c.find((x) => x.id === id); m.text = text; m.name = name;
@@ -555,6 +589,44 @@
       if (!(await save(fsDel(b.dataset.id), "Deleted"))) return;
       S.fs.c = S.fs.c.filter((x) => x.id !== b.dataset.id);
       refreshRow(b.dataset.cid);
+    },
+    "ov-edit"() {
+      const secs = ovSections().map((x) => ({ id: x.id || uid(), title: x.title || "", text: x.text || "", links: (x.links || []).map((l) => ({ ...l })) }));
+      S.ui.ov = { sections: secs.length ? secs : [{ id: uid(), title: "", text: "", links: [] }] };
+      render(true);
+    },
+    "ov-cancel"() { S.ui.ov = null; render(true); },
+    "ov-add"() { S.ui.ov.sections.push({ id: uid(), title: "", text: "", links: [] }); render(true); },
+    "ov-rm"(b) {
+      const x = S.ui.ov.sections[+b.dataset.i];
+      if ((x.title || x.text) && !confirm("Remove this section?")) return;
+      S.ui.ov.sections.splice(+b.dataset.i, 1); render(true);
+    },
+    "ov-up"(b) { const a = S.ui.ov.sections, i = +b.dataset.i; if (i > 0) { [a[i - 1], a[i]] = [a[i], a[i - 1]]; render(true); } },
+    "ov-down"(b) { const a = S.ui.ov.sections, i = +b.dataset.i; if (i < a.length - 1) { [a[i + 1], a[i]] = [a[i], a[i + 1]]; render(true); } },
+    "ov-rmlink"(b) { S.ui.ov.sections[+b.dataset.i].links.splice(+b.dataset.j, 1); render(true); },
+    "ov-addev"(b) {
+      const i = b.dataset.i, sel = $(`[data-ovpick="${i}"]`), title = $(`[data-ovetitle="${i}"]`).value.trim();
+      if (!sel.value) return;
+      const x = S.ui.ov.sections[+i];
+      if (!x.links.some((l) => l.t === "evidence" && l.id === sel.value)) x.links.push({ t: "evidence", id: sel.value, label: title, url: "" });
+      render(true);
+    },
+    "ov-addurl"(b) {
+      const i = b.dataset.i, lbl = $(`[data-ovlbl="${i}"]`).value.trim(), url = $(`[data-ovurl="${i}"]`).value.trim();
+      if (!safeUrl(url)) { toast("Enter a link that starts with http:// or https://", true); return; }
+      S.ui.ov.sections[+i].links.push({ t: "url", label: lbl || url, url, id: "" });
+      render(true);
+    },
+    async "ov-save"() {
+      const sections = S.ui.ov.sections
+        .filter((x) => x.title.trim() || x.text.trim() || x.links.length)
+        .map((x) => ({ id: x.id, title: x.title.trim(), text: x.text.replace(/\s+$/, ""),
+          links: x.links.filter((l) => l.t === "url" || evById(l.id)).map((l) => ({ t: l.t, id: l.id || "", label: l.label || "", url: l.url || "" })) }));
+      if (!(await save(fsSet("overall", { sections }, ["sections"])))) return;
+      S.fs.overall = { sections };
+      S.ui.ov = null;
+      render(true);
     },
     "evn-new"() { S.ui.evForm = "new"; render(true); },
     "evn-edit"(b) { S.ui.evForm = b.dataset.id; render(true); },
@@ -597,6 +669,8 @@
   function onInput(e) {
     const t = e.target.closest("[data-draft]");
     if (t && S.ui.ev[t.dataset.cid]) S.ui.ev[t.dataset.cid].text = t.value;
+    const o = e.target.closest("[data-ov]");
+    if (o && S.ui.ov) S.ui.ov.sections[+o.dataset.i][o.dataset.ov] = o.value;
   }
 
   // ---------- router ----------
@@ -606,6 +680,7 @@
     let view, navKey = sec || "assessment";
     if (!sec || sec === "assessment") { view = viewAssessment(id); navKey = "assessment"; }
     else if (sec === "evidence") view = viewEvidence(id);
+    else if (sec === "overall") { view = viewOverall(); navKey = "overall"; }
     else if (sec === "criteria") { view = id ? viewCriterion(id) : viewAssessment(); navKey = "assessment"; }
     else if (sec === "projects") view = id ? viewProject(id) : viewProjects();
     else view = viewNotFound();
@@ -614,6 +689,11 @@
     document.querySelectorAll("#nav a").forEach((a) => {
       if (a.dataset.route === navKey) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
+    const o = S.data.overview;
+    document.getElementById("site-head").innerHTML = html`<div class="head-text">
+        <a class="brand" href="#/assessment">${o.subject} · ${o.currentRole} to ${o.targetRole} Assessment</a>
+        <p class="head-sub">${o.purpose}</p></div>
+      <p class="head-updated">Updated: <span id="updated-at">${updatedText()}</span></p>`.s;
     document.title = "Senior UX Designer Assessment";
     if (sec === "evidence" && id && $(`#evi-${CSS.escape(id)}`)) {
       const el = $(`#evi-${CSS.escape(id)}`);
@@ -625,7 +705,7 @@
   document.addEventListener("click", onClick);
   document.addEventListener("input", onInput);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenus(); });
-  window.addEventListener("hashchange", () => { S.ui.evForm = null; render(); });
+  window.addEventListener("hashchange", () => { S.ui.evForm = null; S.ui.ov = null; render(); });
   load().then(() => render()).catch((err) => {
     document.getElementById("main").innerHTML =
       `<div class="page"><p class="note"><strong>Could not load the data.</strong> ${esc(err.message)}<br>Serve this folder over HTTP (for example <code>python3 -m http.server</code>) instead of opening index.html directly.</p></div>`;
