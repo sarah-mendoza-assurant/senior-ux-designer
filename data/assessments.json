@@ -1,320 +1,320 @@
 {
-  "_help": "Current assessments, one entry per criterion id. status: not-assessed | developing | meets | exceeds. justification is third person and grounded in specific evidence. justificationState: none | draft | final. Do not set a status without a justification grounded in linked evidence. evidenceSummary (1-3 sentences) is shown in the table's Supporting Evidence column and must only restate facts from linked evidence in evidence.json. links: optional [{label,url}] shown as text links beside the summary.",
+  "_help": "Baseline (seed) content. rating is the workbook scale: empty (not assessed), Mastery, Proficient, Competent or Novice. Sarah edits ratings, evidence text, links and comments on the site; those edits are saved in the shared Firestore database and override this baseline. justification is third person and grounded in linked evidence. evidenceSummary is the baseline text for the Supporting evidence cell.",
   "assessments": {
     "ui-01": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Redesigned the Agent Portal 3.0 dashboard to show what needs attention at a glance, such as upcoming closings. In prototype sessions, TCs specifically valued the \"closing soon\" and \"payment attention needed\" cards (pre-launch feedback). In Assurant Assist, usage data led to a recommendation that device search have similar hierarchy to browsing by category.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ui-02": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ui-03": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Applied Assurant design system patterns where available and created consistent extensions where needed (per project brief; not claimed as officially published components).",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ui-04": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Defined empty, loading, error and confirmation states across Agent Portal 3.0, and designed section-based order flows with clear progress and requirements. Redesigned the Assurant Assist Getting Started add-device flow to give immediate feedback and allow for user error.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ui-05": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Wrote microcopy for empty, loading, error and confirmation states in Agent Portal 3.0, and applied design system patterns consistently (design system work per project brief).",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ui-06": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Designed Agent Portal 3.0 flows for agent search and addition, address search within Google API constraints, and payer selection and payment collection. Redesigned order creation and editing as one section-based flow with clear requirements, and improved the Assurant Assist add-device flow.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ui-07": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Redesigned the Agent Portal 3.0 dashboard and Orders page for centralized management across multiple agents, with search and filtering by property address, assigned agent or outstanding action.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ui-08": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Reworked the dashboard and order list to surface what needs action, such as closing dates and outstanding information, instead of listing individual orders. TCs described the prototype as simple and straightforward (pre-launch feedback).",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ui-09": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Organized Agent Portal 3.0 around a dashboard, a centralized Orders page and a section-based order flow. In prototype feedback, TCs described the Orders page as a \"one-stop shop\" (pre-launch).",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ui-10": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ui-11": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "The dashboard redesign shifted the landing experience from reviewing individual orders to showing priorities and what needs attention at a glance.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ux-01": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Combined competitor review, rapid prototyping, TC follow-up sessions and peer review when shaping Agent Portal 3.0 and Assurant Assist flows, and used Figma Make to explore concepts. Completed over 16 hours of NN/g UX training and earned certification (per project brief).",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ux-02": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Built on TC research and journey mapping for Agent Portal 3.0 and validated the prototype with six TCs. Analyzed 30 days of Assurant Assist add-device data to understand why users prefer browsing by category over search.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ux-03": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Reframed a roadmap of separate Agent Portal enhancements as one unified 3.0 product direction. Development is underway, so there are no post-launch results yet.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ux-04": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Connected the Agent Portal dashboard, orders and order-flow enhancements into one redesign. Owned the Assurant Assist device journey from search to add device, and collaborated with other designers on the wider application (per project brief).",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ux-05": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Used rapid prototyping to reach stakeholder alignment sooner (estimated ~63% less time than a typical four-week process; an estimate, not a measurement). Worked within technical constraints such as Google API address search.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ux-06": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Delivered detailed Agent Portal 3.0 designs for development handoff, using annotated Figma flows and a Claude prototype. Developer praise for clarity and detail is from the project brief and still needs a source.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "ux-07": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Applied Assurant design system patterns where available and created consistent extensions where needed (per project brief; not claimed as officially published components).",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "pt-01": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Owns the Assurant Assist device journey: device search, add device and related functionality (per project brief).",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "pt-02": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Started Agent Portal 3.0 from TC research and known pain points, then validated the direction with six TCs. In Assurant Assist, started from usage data on how users add devices.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "pt-03": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Aligned stakeholders with a working prototype and provided annotated Figma flows during development refinement. Presented a data-based recommendation on search prominence in the Assurant Assist case study.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "pt-04": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Proposed combining the Agent Portal roadmap's separate enhancements into one 3.0 experience. Positive TC feedback on the prototype helped build business confidence to accelerate the redesign.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "pt-05": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Connected TC access, order status, dashboard and order journey enhancements into one experience, and resolved workflows and edge cases across listing coverage, agent search and payment. Challenged requirements where a better overall experience was possible (per project brief; a concrete example is still needed).",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "own-01": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Owned detailed end-to-end design of Agent Portal 3.0, including the dashboard, quote and order flows, payment and order management. Owns the Assurant Assist device journey, not the whole application.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "own-02": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Identified the opportunity for one cohesive Agent Portal 3.0 vision across separate roadmap items. Development is underway.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "lead-01": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Identified the opportunity for a unified Agent Portal 3.0 and drove alignment through prototyping. Recommended a smaller-pod UX peer review format and shared learnings on AI tools with the team (per project brief).",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "lead-02": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Contributed to team UX practice through the smaller-pod peer review recommendation and collaboration with other Assurant Assist designers (per project brief). Specific UX Playbook examples are not yet documented.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "lead-03": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Worked with stakeholders, TCs and developers on Agent Portal 3.0 and with other designers on Assurant Assist. Used peer review and Figma Make to refine the Getting Started add-device flow.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "lead-04": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Estimated ~63% less time to stakeholder alignment on Agent Portal 3.0 (an estimate). Reviewed Mixpanel behavior and helped improve tracking for Assurant Assist (per project brief). Post-launch follow-through with results is not yet documented.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "biz-01": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Worked with stakeholders to align on how planned Agent Portal enhancements fit together as one product experience, including the Atlanta workshop (per project brief).",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "biz-02": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Used journey mapping and a working prototype to present Agent Portal 3.0 ideas to stakeholders and gain alignment.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "biz-03": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Designed within business and technical limits while challenging requirements where a better experience was possible (per project brief). A concrete example is still needed.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "data-01": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Used TC research and prototype feedback for Agent Portal 3.0, and 30 days of Assurant Assist usage data, to guide design decisions. Reviewed Mixpanel behavior (per project brief).",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "data-02": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Identified Mixpanel tracking gaps and helped add or improve tracking (per project brief). Planned measures for the Assist Getting Started flow are devices added and drop-off rate.",
-      "links": []
+      "links": [],
+      "rating": ""
     },
     "data-03": {
-      "status": "not-assessed",
       "justificationState": "none",
       "justification": "",
       "confidence": "",
       "developmentNotes": "",
       "evidenceSummary": "Reviewed Mixpanel behavior to improve analytics tracking (per project brief). Using metrics to communicate successes is not yet documented.",
-      "links": []
+      "links": [],
+      "rating": ""
     }
   }
 }

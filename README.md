@@ -1,14 +1,12 @@
 # Senior UX Promotion Assessment
 
-A read-only website presenting Sarah Mendoza's work against Assurant's Senior UX Designer expectations, for manager and leadership review.
+A website presenting Sarah Mendoza's work against Assurant's Senior UX Designer expectations.
 
-- **Overview**: status, featured evidence, growth areas
-- **Criteria**: the 35 workbook criteria in their seven original categories, with search and filters; each has a detail page
+- **Assessment**: the 35 workbook requirements by category in a four-column table. Rate yourself with the My assessment dropdown, edit supporting evidence and links, and add comments.
 - **Projects**: Home Warranty Agent Portal 3.0 (featured) and Assurant Assist
-- **Growth**: evidence gaps, open questions, next steps
-- **Manager review**: print-friendly page of every criterion (save as PDF from the print dialog)
+- **Evidence**: all evidence entries; add or edit entries, which supporting-evidence links can point to
 
-Content is updated by asking Claude to edit the JSON files in `data/`; see `CLAUDE.md`. The site has no editing features.
+Edits are saved to a shared Firestore database, so they persist and everyone with the link sees them. **Anyone with the link can edit.** See `CLAUDE.md` for the data layout and rules.
 
 ## Run locally
 
@@ -16,8 +14,4 @@ Content is updated by asking Claude to edit the JSON files in `data/`; see `CLAU
 python3 -m http.server 8123
 ```
 
-Then open http://127.0.0.1:8123/. Check content with `python3 scripts/validate.py`.
-
-## Hosting
-
-Not published. GitHub Pages from a private repository requires a paid GitHub plan, and a public repository would expose this content. Decide before publishing.
+Then open http://127.0.0.1:8123/. Check the baseline data with `python3 scripts/validate.py`.

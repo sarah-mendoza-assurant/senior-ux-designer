@@ -1,19 +1,28 @@
-/* Read-only promotion assessment site. All content comes from /data/*.json. */
+/* Senior UX Designer assessment.
+   Baseline content comes from /data/*.json. Edits (ratings, evidence text and links, evidence entries,
+   comments) are saved to a shared Firestore database through its REST API. Anyone with the link can edit. */
 (function () {
   "use strict";
 
-  const STATUS = { "not-assessed": "Not assessed", developing: "Developing", meets: "Meets", exceeds: "Exceeds" };
+  const FB = {
+    project: "senior-ux-assessment",
+    key: "AIzaSyAxm1NdeqKfZBM2450VW8HQiEqEoTg_XmE", // public web identifier, not a secret
+  };
+  const FS = `https://firestore.googleapis.com/v1/projects/${FB.project}/databases/(default)/documents/site`;
+
   const VERIF = {
     "source-document": ["src", "Backed by source document"],
     "brief-only": ["brief", "From brief, needs source"],
     estimate: ["est", "Estimate, not measured"],
   };
-  const S = { data: null };
+  const TYPES = ["Case study", "Research / validation", "Design artifact", "Collaboration", "Analytics", "Training", "Process", "Other"];
+  const S = { data: null, online: false, fs: { a: {}, e: {}, c: [] }, ui: { ev: {}, cmtOpen: {}, cmtEdit: null, evForm: null } };
 
   // ---------- helpers ----------
   const esc = (s) =>
     String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   class Raw { constructor(s) { this.s = s; } }
+  const raw = (s) => new Raw(s);
   const html = (strings, ...vals) =>
     new Raw(
       strings.reduce((out, str, i) => {
@@ -24,120 +33,314 @@
         return out + v + str;
       })
     );
-  const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : null);
+  const safeUrl = (u) => (/^https?:\/\//i.test((u || "").trim()) ? u.trim() : null);
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const cut = (t, n) => (t.length > n ? t.slice(0, n - 2) + "…" : t);
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const store = {
+    get: (k) => { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
+  };
 
-  const statusBadge = (s) => html`<span class="status ${s}">${STATUS[s]}</span>`;
-  const verifTag = (v) => html`<span class="tag ${VERIF[v.level][0]}">${VERIF[v.level][1]}</span>`;
+  // ---------- Firestore REST ----------
+  const enc = (v) =>
+    typeof v === "boolean" ? { booleanValue: v }
+    : Array.isArray(v) ? { arrayValue: { values: v.map(enc) } }
+    : v && typeof v === "object" ? { mapValue: { fields: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, enc(x)])) } }
+    : { stringValue: v == null ? "" : String(v) };
+  const dec = (f) =>
+    "stringValue" in f ? f.stringValue
+    : "booleanValue" in f ? f.booleanValue
+    : "integerValue" in f ? Number(f.integerValue)
+    : "arrayValue" in f ? (f.arrayValue.values || []).map(dec)
+    : "mapValue" in f ? Object.fromEntries(Object.entries(f.mapValue.fields || {}).map(([k, x]) => [k, dec(x)]))
+    : null;
 
+  async function fsList() {
+    const docs = [];
+    let tok = "";
+    do {
+      const r = await fetch(`${FS}?pageSize=300&key=${FB.key}${tok ? `&pageToken=${encodeURIComponent(tok)}` : ""}`);
+      if (!r.ok) throw new Error(`Database read failed (${r.status})`);
+      const j = await r.json();
+      docs.push(...(j.documents || []));
+      tok = j.nextPageToken || "";
+    } while (tok);
+    return docs.map((d) => ({ id: d.name.split("/").pop(), updated: d.updateTime || "", fields: Object.fromEntries(Object.entries(d.fields || {}).map(([k, v]) => [k, dec(v)])) }));
+  }
+  async function fsSet(id, fields, mask) {
+    const q = (mask || []).map((m) => `updateMask.fieldPaths=${encodeURIComponent(m)}`).join("&");
+    const r = await fetch(`${FS}/${encodeURIComponent(id)}?${q}${q ? "&" : ""}key=${FB.key}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, enc(v)])) }),
+    });
+    if (!r.ok) throw new Error(`Save failed (${r.status})`);
+  }
+  async function fsDel(id) {
+    const r = await fetch(`${FS}/${encodeURIComponent(id)}?key=${FB.key}`, { method: "DELETE" });
+    if (!r.ok) throw new Error(`Delete failed (${r.status})`);
+  }
+
+  // "Updated" = the last time anything was edited on the site (latest database change), else the baseline date.
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const fmtDate = (s) => { // always MM/DD/YYYY
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (m) return `${m[2]}/${m[3]}/${m[1]}`;
+    const d = new Date(s);
+    return isNaN(d) ? s : `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}/${d.getFullYear()}`;
+  };
+  const fmtEvDate = (s) => (/^\d{4}-\d{2}$/.test(s || "") ? `${s.slice(5)}/${s.slice(0, 4)}` : fmtDate(s)); // month-only dates stay MM/YYYY
+  const updatedText = () => fmtDate(S.fs.updated || (S.data && S.data.overview.updated) || "");
+  let toastTimer;
+  function toast(msg, bad) {
+    const t = $("#toast");
+    t.textContent = msg;
+    t.className = "show" + (bad ? " bad" : "");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.className = ""; }, bad ? 6000 : 2200);
+  }
+  async function save(promise, okMsg) {
+    toast("Saving…");
+    try {
+      await promise; toast(okMsg || "Saved");
+      S.fs.updated = new Date().toISOString();
+      const el = $("#updated-at"); if (el) el.textContent = updatedText();
+      return true;
+    }
+    catch (err) { toast(err.message + ". Your change was not saved.", true); return false; }
+  }
+
+  // ---------- data ----------
   async function load() {
-    const names = ["criteria", "assessments", "evidence", "projects", "growth", "overview"];
-    const res = await Promise.all(names.map((n) => fetch(`data/${n}.json`).then((r) => {
+    const names = ["criteria", "assessments", "evidence", "projects", "overview"];
+    const res = await Promise.all(names.map((n) => fetch(`data/${n}.json`, { cache: "no-cache" }).then((r) => {
       if (!r.ok) throw new Error(`Could not load data/${n}.json`);
       return r.json();
     })));
-    const [criteria, assessments, evidence, projects, growth, overview] = res;
+    const [criteria, assessments, evidence, projects, overview] = res;
     const all = [];
     criteria.categories.forEach((cat) => cat.criteria.forEach((c) => all.push({ ...c, catId: cat.id, catName: cat.name })));
     S.data = {
-      criteria, all, growth, overview,
+      criteria, all, overview,
+      levels: criteria.masteryScale,
       byId: Object.fromEntries(all.map((c) => [c.id, c])),
-      evById: Object.fromEntries(evidence.evidence.map((e) => [e.id, e])),
       projById: Object.fromEntries(projects.projects.map((p) => [p.id, p])),
       assessments: assessments.assessments,
-      evidence: evidence.evidence,
+      seedEvidence: evidence.evidence,
       projects: projects.projects,
     };
-  }
-
-  const evidenceFor = (cid) => S.data.evidence.filter((e) => e.criteria.includes(cid));
-  const asmt = (cid) => S.data.assessments[cid];
-  const projName = (id) => (id ? S.data.projById[id].name : "Other contributions");
-  const sourcedCount = (cid) => evidenceFor(cid).filter((e) => e.verification.level === "source-document").length;
-  const evidenceByProject = (pid) => S.data.evidence.filter((e) => e.project === pid);
-  const cut = (t, n) => (t.length > n ? t.slice(0, n - 2) + "…" : t);
-
-  // Supporting documents for a criterion, derived from its linked evidence (no invented links).
-  function sourcesFor(cid) {
-    const seen = new Map();
-    let needsSource = false;
-    evidenceFor(cid).forEach((e) => {
-      if (e.verification.level === "brief-only") needsSource = true;
-      e.source.label.split(";").map((x) => x.trim()).forEach((raw) => {
-        if (!raw || /^project brief/i.test(raw)) return;
-        const name = raw.replace(/\.(pdf|docx)$/i, "");
-        if (!seen.has(name)) seen.set(name, e.source.url || null);
+    try {
+      const docs = await fsList();
+      S.fs.updated = docs.reduce((m, d) => (d.updated > m ? d.updated : m), "");
+      docs.forEach(({ id, fields }) => {
+        if (id.startsWith("a_")) S.fs.a[id.slice(2)] = fields;
+        else if (id.startsWith("e_")) S.fs.e[id.slice(2)] = fields;
+        else if (id.startsWith("c_")) S.fs.c.push({ id, ...fields });
       });
-    });
-    const out = [...seen].map(([label, url]) => ({ label, url: safeUrl(url), kind: "doc" }));
-    (asmt(cid).links || []).forEach((l) => out.unshift({ label: l.label, url: safeUrl(l.url), kind: "link" }));
-    if (needsSource) out.push({ label: "Project brief (needs a source)", url: null, kind: "flag" });
-    return out;
+      S.online = true;
+    } catch (err) { S.online = false; }
   }
+
+  const asmt = (cid) => S.data.assessments[cid];
+  const projName = (id) => (id && S.data.projById[id] ? S.data.projById[id].name : "Other contributions");
+
+  function allEvidence() {
+    const items = S.data.seedEvidence.map((e) => {
+      const o = S.fs.e[e.id];
+      if (!o) return e;
+      if (o.deleted) return null;
+      return { ...e, title: o.title ?? e.title, type: o.type ?? e.type, project: o.project === undefined ? e.project : o.project || null,
+        contribution: o.contribution ?? e.contribution, outcome: o.outcome ?? e.outcome,
+        source: { ...e.source, label: o.sourceLabel ?? e.source.label, url: o.sourceUrl === undefined ? e.source.url : o.sourceUrl || null } };
+    }).filter(Boolean);
+    const seen = new Set(S.data.seedEvidence.map((e) => e.id));
+    Object.entries(S.fs.e).forEach(([id, o]) => {
+      if (seen.has(id) || !o.custom) return;
+      items.push({ id, custom: true, title: o.title || "(untitled)", type: o.type || "Other", project: o.project || null,
+        contribution: o.contribution || "", outcome: o.outcome || "", created: o.created || "",
+        source: { label: o.sourceLabel || "", pages: "", url: o.sourceUrl || null }, criteria: [] });
+    });
+    return items;
+  }
+  const evById = (id) => allEvidence().find((e) => e.id === id);
+  const evidenceFor = (cid) => allEvidence().filter((e) => (e.criteria || []).includes(cid));
+  const evidenceByProject = (pid) => allEvidence().filter((e) => (e.project || null) === pid);
+  const sourcedCount = (cid) => evidenceFor(cid).filter((e) => e.verification && e.verification.level === "source-document").length;
+
+  const ratingOf = (cid) => (S.fs.a[cid] && S.fs.a[cid].rating !== undefined ? S.fs.a[cid].rating : asmt(cid).rating) || "";
+  const evTextOf = (cid) => (S.fs.a[cid] && S.fs.a[cid].evidenceText !== undefined ? S.fs.a[cid].evidenceText : asmt(cid).evidenceSummary) || "";
+  const evLinksOf = (cid) => {
+    if (S.fs.a[cid] && Array.isArray(S.fs.a[cid].evidenceLinks)) return S.fs.a[cid].evidenceLinks;
+    const own = asmt(cid).links || [];
+    return [...own.map((l) => ({ t: "url", label: l.label, url: l.url, id: "" })), ...evidenceFor(cid).map((e) => ({ t: "evidence", id: e.id, label: "", url: "" }))];
+  };
+  const hasEvidence = (cid) => !!(evTextOf(cid).trim() || evLinksOf(cid).some((l) => l.t === "url" || evById(l.id)));
+  const commentsFor = (cid) => S.fs.c.filter((c) => c.cid === cid).sort((a, b) => (a.created || "").localeCompare(b.created || ""));
+  const levelFromText = (t) => (t ? S.data.levels.find((l) => l.level.toLowerCase() === t.trim().toLowerCase()) : null);
+  const lvlCls = (name) => "lvl-" + String(name).toLowerCase();
 
   // ---------- shared pieces ----------
-  function evidenceCell(c) {
-    const a = asmt(c.id);
-    const src = sourcesFor(c.id);
-    if (!a.evidenceSummary && !src.length) return html`<p class="none-yet">No evidence linked yet.</p>`;
-    return html`${a.evidenceSummary ? html`<p class="ev-text">${a.evidenceSummary}</p>` : ""}
-      ${src.length ? html`<ul class="ev-links">${src.map((s) =>
-        s.url ? html`<li><a href="${s.url}" rel="noopener">${s.label}</a></li>`
-              : html`<li class="plain ${s.kind === "flag" ? "flag" : ""}">${s.label}</li>`)}</ul>` : ""}`;
+  const ICON_EDIT = raw('<svg class="ico" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false"><path d="M11.3 1.7a1.5 1.5 0 0 1 2.1 0l.9.9a1.5 1.5 0 0 1 0 2.1l-8 8-3.4.8a.5.5 0 0 1-.6-.6l.8-3.4 8.2-7.8Zm1.4.7a.5.5 0 0 0-.7 0L10.9 3.5l1.6 1.6 1.1-1.1a.5.5 0 0 0 0-.7l-.9-.9ZM11.8 5.8 10.2 4.2 4 10.2l-.5 2.3 2.3-.5 6-6.2Z" fill="currentColor"/></svg>');
+  const levelPill = (name) => html`<span class="lvl-pill ${lvlCls(name)}">${name}</span>`;
+  const verifTag = (v) => (v ? html`<span class="tag ${VERIF[v.level][0]}">${VERIF[v.level][1]}</span>` : "");
+
+  function ratingCell(c) {
+    const cur = ratingOf(c.id);
+    const label = cur ? levelPill(cur) : html`<span class="lvl-pill lvl-none">Not assessed</span>`;
+    const prior = c.priorRating ? html`<span class="prior">Prior year: ${c.priorRating}</span>` : "";
+    if (!S.online) return html`${label}${prior}`;
+    return html`<div class="lvl">
+      <button type="button" class="lvl-btn" data-act="lvl-toggle" aria-haspopup="listbox" aria-expanded="false" aria-label="My assessment for ${c.title}: ${cur || "Not assessed"}">${label}<span class="chev" aria-hidden="true">▾</span></button>
+      <div class="lvl-menu" role="listbox" hidden>
+        <button type="button" role="option" class="lvl-opt" data-act="lvl-pick" data-cid="${c.id}" data-v=""><span class="lvl-pill lvl-none">Not assessed</span><span class="lvl-key">No rating yet</span></button>
+        ${S.data.levels.map((l) => html`<button type="button" role="option" class="lvl-opt" data-act="lvl-pick" data-cid="${c.id}" data-v="${l.level}" aria-selected="${cur === l.level}"><span class="lvl-pill ${lvlCls(l.level)}">${l.level}</span><span class="lvl-key">${l.meaning}</span></button>`)}
+      </div>
+    </div>${prior}`;
   }
 
-  function assessmentRow(c) {
-    return html`<tr>
-      <td data-label="Requirement"><a class="req-title" href="#/criteria/${c.id}">${c.title}</a>${
-        c.description ? html`<p class="req-desc">${c.description}</p>` : ""}</td>
-      <td data-label="Senior UX Designer expectation"><span class="srbadge">Sr UXD</span><p class="exp-text">${c.srUxd}</p></td>
-      <td data-label="My assessment">${statusBadge(asmt(c.id).status)}${
-        c.priorRating ? html`<span class="prior">Prior year: ${c.priorRating}</span>` : ""}</td>
-      <td data-label="Supporting evidence">${evidenceCell(c)}</td>
-    </tr>`;
+  const wordCut = (t, n = 10) => { const w = String(t).trim().split(/\s+/); return w.length > n ? w.slice(0, n).join(" ") + "…" : w.join(" "); };
+  function linkItem(l, edit) {
+    const open = edit === true ? "" : " ↗";
+    if (l.t === "url") {
+      const u = safeUrl(l.url);
+      if (!u) return html`<span class="plain">${wordCut(l.label || "")}</span>`;
+      const full = l.label || u;
+      return edit === true ? html`<span class="chipl" title="${full}">${wordCut(full)}</span>`
+        : html`<a class="chipl" href="${u}" target="_blank" rel="noopener noreferrer" title="${full}">${wordCut(full)}${open}</a>`;
+    }
+    const ev = evById(l.id);
+    if (!ev) return "";
+    const full = l.label || ev.title;
+    return edit === true ? html`<span class="chipl" title="${full}">${wordCut(full)}</span>`
+      : html`<a class="chipl" href="#/evidence/${ev.id}" target="_blank" rel="noopener" title="${full}">${wordCut(full)}${open}</a>`;
+  }
+
+  function evidenceCell(c) {
+    const cid = c.id;
+    const d = S.ui.ev[cid];
+    if (d) {
+      const evOpts = allEvidence().map((e) => html`<option value="${e.id}">${cut(e.title, 70)}</option>`);
+      return html`<div class="ev-edit">
+        <label class="sr-only" for="ta-${cid}">Supporting evidence for ${c.title}</label>
+        <textarea id="ta-${cid}" class="ta" rows="5" data-draft data-cid="${cid}" placeholder="How does this work demonstrate the requirement? 1-3 sentences.">${d.text}</textarea>
+        <ul class="ev-links editing">${d.links.map((l, i) => html`<li>${linkItem(l, true)}<button type="button" class="x" data-act="ev-rm" data-cid="${cid}" data-i="${i}" aria-label="Remove link">×</button></li>`)}</ul>
+        <div class="field-row"><select class="in" data-pick="${cid}" aria-label="Link to an evidence entry"><option value="">Link to an evidence entry…</option>${evOpts}</select>
+          <input class="in" data-etitle="${cid}" placeholder="Title (optional)" aria-label="Title for the evidence link">
+          <button type="button" class="mini" data-act="ev-add-ev" data-cid="${cid}">Add</button></div>
+        <div class="field-row"><input class="in" data-lbl="${cid}" placeholder="Title" aria-label="Link title"><input class="in" data-url="${cid}" placeholder="https://…" aria-label="Link address">
+          <button type="button" class="mini" data-act="ev-add-url" data-cid="${cid}">Add link</button></div>
+        <div class="actions"><button type="button" class="btn sm" data-act="ev-save" data-cid="${cid}">Save</button>
+          <button type="button" class="btn-ghost sm" data-act="ev-cancel" data-cid="${cid}">Cancel</button></div>
+      </div>`;
+    }
+    const text = evTextOf(cid);
+    const links = evLinksOf(cid).map(linkItem).filter((x) => x !== "");
+    return html`${text ? html`<p class="ev-text">${text}</p>` : html`<p class="none-yet">No evidence added yet.</p>`}
+      ${links.length ? html`<ul class="ev-links">${links.map((l) => html`<li>${l}</li>`)}</ul>` : ""}
+      ${S.online ? html`<div class="ev-foot"><button type="button" class="pill-btn" data-act="ev-edit" data-cid="${cid}" aria-label="Edit supporting evidence for ${c.title}">${ICON_EDIT}Edit</button></div>` : ""}`;
+  }
+
+  function commentRow(c) {
+    const cid = c.id, list = commentsFor(cid);
+    const item = (m) => {
+      if (S.ui.cmtEdit === m.id) return commentForm(cid, m);
+      return html`<div class="cmt"><div class="cmt-meta"><strong>${m.name || "Anonymous"}</strong>${m.created ? html` · ${fmtDate(m.created)}` : ""}
+        ${S.online ? html`<button type="button" class="mini icon-btn" data-act="cmt-edit" data-id="${m.id}" data-cid="${cid}" aria-label="Edit comment">${ICON_EDIT}Edit</button><button type="button" class="mini" data-act="cmt-del" data-id="${m.id}" data-cid="${cid}">Delete</button>` : ""}</div>
+        <p>${m.text}</p></div>`;
+    };
+    const adding = S.ui.cmtOpen[cid] && !S.ui.cmtEdit;
+    return html`<tr class="cmt-row"><td colspan="4"><div class="cmt-wrap" role="group" aria-label="Comments on ${c.title}">
+      <div class="cmt-head"><span class="cmt-count">${list.length ? `Comments (${list.length})` : "No comments"}</span>
+        ${S.online && !adding ? html`<button type="button" class="mini cmt-add" data-act="cmt-add" data-cid="${cid}">+ Add comment</button>` : ""}</div>
+      ${list.length ? html`<div class="cmt-list">${list.map(item)}</div>` : ""}
+      ${adding ? commentForm(cid, null) : ""}</div></td></tr>`;
+  }
+  function commentForm(cid, m) {
+    return html`<div class="cmt-form">
+      <input class="in" data-cname placeholder="Your name (optional)" aria-label="Your name" value="${m ? m.name || "" : store.get("ux-name")}">
+      <textarea class="ta" rows="3" data-ctext placeholder="Add a comment" aria-label="Comment">${m ? m.text : ""}</textarea>
+      <div class="actions"><button type="button" class="btn sm" data-act="cmt-save" data-cid="${cid}" data-id="${m ? m.id : ""}">Save</button>
+        <button type="button" class="btn-ghost sm" data-act="cmt-cancel" data-cid="${cid}">Cancel</button></div></div>`;
+  }
+
+  function rowGroup(c) {
+    const cid = c.id, sr = levelFromText(c.srUxd);
+    const cm = commentRow(c);
+    return html`<tbody data-cid="${cid}" class="has-cmt">
+      <tr class="main-row">
+        <td data-label="Requirement"><a class="req-title" href="#/criteria/${cid}">${c.title}</a>${c.description ? html`<p class="req-desc">${c.description}</p>` : ""}</td>
+        <td data-label="Senior UX Designer expectation">${sr ? levelPill(sr.level) : html`<p class="exp-text">${c.srUxd}</p>`}</td>
+        <td data-label="My assessment">${ratingCell(c)}</td>
+        <td data-label="Supporting evidence">${evidenceCell(c)}</td>
+      </tr>${cm}</tbody>`;
+  }
+  function refreshRow(cid) {
+    const old = $(`tbody[data-cid="${cid}"]`);
+    if (old) old.outerHTML = rowGroup(S.data.byId[cid]).s;
   }
 
   function assessmentTable(cat) {
     return html`<table class="assessment">
       <colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"></colgroup>
       <thead><tr><th scope="col">Requirement</th><th scope="col">Senior UX Designer<br>Expectation</th><th scope="col">My assessment</th><th scope="col">Supporting evidence</th></tr></thead>
-      <tbody>${cat.criteria.map((c) => assessmentRow({ ...c, catId: cat.id, catName: cat.name }))}</tbody>
+      ${cat.criteria.map((c) => rowGroup({ ...c, catId: cat.id, catName: cat.name }))}
     </table>`;
   }
 
-  function sidebar(activeCat, activeProj) {
+  function sidebar(activeCat) {
     return html`<aside class="sidebar" aria-label="Activity sections">
       <h2>Activity Sections</h2>
       <p class="sub">From Senior UX Designer Workbook</p>
       <ul>${S.data.criteria.categories.map((cat) => html`<li class="cat"><a href="#/assessment/${cat.id}" ${
-        cat.id === activeCat ? new Raw('aria-current="page"') : ""}><span>${cat.name}</span><span class="count">${cat.criteria.length}</span></a></li>`)}</ul>
+        cat.id === activeCat ? raw('aria-current="page"') : ""}><span>${cat.name}</span><span class="count">${cat.criteria.length}</span></a></li>`)}</ul>
       <div class="group"><h3>Project evidence</h3>
         ${S.data.projects.map((p) => html`<a href="#/projects/${p.id}">${p.name}</a>`)}
       </div>
-      <div class="group"><a href="#/review">Print all sections</a></div>
     </aside>`;
   }
+  const withSidebar = (activeCat, content) => html`<div class="layout">${sidebar(activeCat)}<section class="content">${content}</section></div>`;
 
-  function withSidebar(activeCat, content) {
-    return html`<div class="layout">${sidebar(activeCat)}<section class="content">${content}</section></div>`;
-  }
-
-  function evidenceBlock(e, currentCid) {
-    const others = e.criteria.filter((c) => c !== currentCid);
-    return html`<article class="block ev" id="${e.id}">
-      <div class="chips"><span class="tag">${e.type}</span>${verifTag(e.verification)}${e.date ? html`<span class="tag">${e.date}</span>` : ""}</div>
+  function evidenceBlock(e, opts = {}) {
+    const others = (e.criteria || []);
+    const editing = S.ui.evForm === e.id;
+    if (editing) return html`<div id="evi-${e.id}">${evidenceForm(e)}</div>`;
+    return html`<article class="block ev" id="evi-${e.id}">
+      <div class="chips"><span class="tag">${e.type}</span>${verifTag(e.verification)}${e.date ? html`<span class="tag">${fmtEvDate(e.date)}</span>` : ""}</div>
       <h3>${e.title}</h3>
       <dl>
         <dt>Project</dt><dd>${e.project ? html`<a href="#/projects/${e.project}">${projName(e.project)}</a>` : html`Other contributions`}</dd>
-        <dt>Personal contribution</dt><dd>${e.contribution}</dd>
-        <dt>Outcome / impact</dt><dd>${e.outcome}</dd>
-        <dt>Source</dt><dd>${e.source.label}${e.source.pages ? html` (${e.source.pages})` : ""}${
-          safeUrl(e.source.url) ? html` <a href="${safeUrl(e.source.url)}" rel="noopener">Open</a>` : ""}</dd>
-        ${e.verification.note ? html`<dt>Verification note</dt><dd>${e.verification.note}</dd>` : ""}
-        <dt>Also supports</dt><dd><span class="chips">${others.length
-          ? others.map((c) => html`<a class="chip" href="#/criteria/${c}">${cut(S.data.byId[c].title, 48)}</a>`)
-          : html`<span class="muted">Only this requirement</span>`}</span></dd>
+        ${e.contribution ? html`<dt>What I did</dt><dd class="verbatim">${e.contribution}</dd>` : ""}
+        ${e.outcome ? html`<dt>Outcome / impact</dt><dd class="verbatim">${e.outcome}</dd>` : ""}
+        ${e.source && (e.source.label || safeUrl(e.source.url)) ? html`<dt>Source</dt><dd>${e.source.label}${e.source.pages ? html` (${e.source.pages})` : ""}${
+          safeUrl(e.source.url) ? html` <a href="${safeUrl(e.source.url)}" target="_blank" rel="noopener noreferrer">Open ↗</a>` : ""}</dd>` : ""}
+        ${e.verification && e.verification.note ? html`<dt>Verification note</dt><dd>${e.verification.note}</dd>` : ""}
+        ${others.length ? html`<dt>Also supports</dt><dd><span class="chips">${others.map((c) => html`<a class="chip" href="#/criteria/${c}">${cut(S.data.byId[c].title, 48)}</a>`)}</span></dd>` : ""}
       </dl>
+      ${opts.editable && S.online ? html`<p class="actions"><button type="button" class="mini icon-btn" data-act="evn-edit" data-id="${e.id}" aria-label="Edit ${e.title}">${ICON_EDIT}Edit</button></p>` : ""}
     </article>`;
+  }
+
+  function evidenceForm(e) {
+    const isNew = !e;
+    const v = e || { title: "", type: "Other", project: null, contribution: "", outcome: "", source: { label: "", url: "" } };
+    return html`<div class="evform" role="group" aria-label="${isNew ? "Add evidence" : "Edit evidence"}">
+      <h3 style="margin-top:0">${isNew ? "Add evidence" : "Edit evidence"}</h3>
+      <label>Title<input class="in" id="evf-title" value="${v.title}"></label>
+      <div class="field-row two">
+        <label>Type<select class="in" id="evf-type">${TYPES.map((t) => html`<option ${t === v.type ? raw("selected") : ""}>${t}</option>`)}</select></label>
+        <label>Project<select class="in" id="evf-project"><option value="">Other contributions</option>${S.data.projects.map((p) => html`<option value="${p.id}" ${p.id === v.project ? raw("selected") : ""}>${p.name}</option>`)}</select></label>
+      </div>
+      <label>What I did<textarea class="ta" id="evf-contribution" rows="3">${v.contribution}</textarea></label>
+      <label>Outcome / impact<textarea class="ta" id="evf-outcome" rows="3">${v.outcome}</textarea></label>
+      <div class="field-row two">
+        <label>Source name<input class="in" id="evf-srclabel" value="${v.source.label || ""}"></label>
+        <label>Source link<input class="in" id="evf-srcurl" placeholder="https://…" value="${v.source.url || ""}"></label>
+      </div>
+      <div class="actions"><button type="button" class="btn sm" data-act="evn-save" data-id="${isNew ? "" : v.id}">Save</button>
+        <button type="button" class="btn-ghost sm" data-act="evn-cancel">Cancel</button>
+        ${isNew ? "" : html`<button type="button" class="btn-danger sm" data-act="evn-del" data-id="${v.id}">Delete evidence</button>`}</div>
+    </div>`;
   }
 
   // ---------- views ----------
@@ -146,80 +349,48 @@
     const o = S.data.overview;
     return withSidebar(cat.id, html`
       <div class="intro">
-        <p class="eyebrow">${o.company} · ${o.currentRole} to ${o.targetRole}</p>
+        <p class="eyebrow">${o.subject} · ${o.currentRole} to ${o.targetRole}</p>
         <p class="lead">${o.purpose}</p>
-        <p class="muted">${o.subject} · Updated ${o.updated}</p>
+        <p class="muted">Updated: <span id="updated-at">${updatedText()}</span></p>
       </div>
       <p class="eyebrow">Activity section</p>
       <div class="section-head">
         <h1 class="cat-h">${cat.name}</h1>
         <div class="meta"><span>${cat.criteria.length} requirements</span></div>
       </div>
+      ${S.online ? "" : html`<p class="note">Saved edits couldn't be loaded, so you're seeing the original content and editing is off. Refresh to try again.</p>`}
       ${assessmentTable(cat)}
-      <p class="muted" style="margin-top:20px">Prior-year ratings were recorded about a year ago and are shown for reference only. Evidence marked "needs a source" comes from the project brief and has no supporting document yet.</p>`);
+      <p class="muted" style="margin-top:20px">Prior-year ratings were recorded about a year ago and are shown for reference. ${S.online ? "Changes you make here are saved to a shared database and are visible to everyone with the link." : ""}</p>`);
   }
 
-  function viewReview() {
-    return html`<div class="page" style="max-width:none">
-      <div class="no-print section-head" style="margin-top:32px">
-        <h1>All sections</h1>
-        <div class="meta"><button class="btn" id="print-btn" type="button">Print or save as PDF</button></div>
-      </div>
-      <p class="muted no-print">Every requirement with its assessment and evidence, for printing.</p>
-      ${S.data.criteria.categories.map((cat) => html`<section class="review-cat"><h2>${cat.name} <span class="muted" style="font-weight:400">· ${cat.criteria.length} requirements</span></h2>${assessmentTable(cat)}</section>`)}
-    </div>`;
-  }
-
-  function viewOverview() {
-    const { overview: o, all, evById } = S.data;
-    const counts = Object.keys(STATUS).map((k) => [k, all.filter((c) => asmt(c.id).status === k).length]);
-    const withEv = all.filter((c) => evidenceFor(c.id).length).length;
-    const noEv = all.filter((c) => !evidenceFor(c.id).length);
-    const justified = all.filter((c) => asmt(c.id).justificationState !== "none").length;
+  function viewEvidence(focusId) {
+    const { overview: o, all, levels } = S.data;
+    const counts = levels.map((l) => [l.level, all.filter((c) => ratingOf(c.id) === l.level).length]);
+    const assessed = counts.reduce((n, [, k]) => n + k, 0);
+    const items = allEvidence();
+    const groups = [...S.data.projects.map((p) => [p.name, items.filter((e) => e.project === p.id)]), ["Other contributions", items.filter((e) => !e.project || !S.data.projById[e.project])]];
     return html`<div class="page">
       <h1>Evidence</h1>
       <p class="lead">${o.summary}</p>
-
-      <h2>Assessment status</h2>
       <div class="stats">
-        ${counts.map(([k, n]) => html`<div><div class="stat">${n}</div><div class="stat-label">${STATUS[k]}</div></div>`)}
-        <div><div class="stat">${justified}<span class="muted"> / ${all.length}</span></div><div class="stat-label">Justifications written</div></div>
-        <div><div class="stat">${withEv}<span class="muted"> / ${all.length}</span></div><div class="stat-label">Requirements with evidence</div></div>
+        <div><div class="stat">${assessed}<span class="muted"> / ${all.length}</span></div><div class="stat-label">Requirements assessed</div></div>
+        ${counts.map(([k, n]) => html`<div><div class="stat">${n}</div><div class="stat-label">${k}</div></div>`)}
+        <div><div class="stat">${items.length}</div><div class="stat-label">Evidence entries</div></div>
       </div>
-
-      <h2>Requirements by section</h2>
-      <table class="plain">
-        <thead><tr><th>Section</th><th class="num">Requirements</th><th class="num">Assessed</th><th class="num">With evidence</th><th class="num">With source-backed evidence</th></tr></thead>
-        <tbody>${S.data.criteria.categories.map((cat) => {
-          const ids = cat.criteria.map((c) => c.id);
-          return html`<tr><td><a href="#/assessment/${cat.id}"><strong>${cat.name}</strong></a></td>
-            <td class="num">${ids.length}</td>
-            <td class="num">${ids.filter((i) => asmt(i).status !== "not-assessed").length}</td>
-            <td class="num">${ids.filter((i) => evidenceFor(i).length).length}</td>
-            <td class="num">${ids.filter((i) => sourcedCount(i)).length}</td></tr>`;
-        })}</tbody>
-      </table>
-
-      <h2>Featured evidence</h2>
-      ${o.topEvidence.map((id) => evidenceBlock(evById[id]))}
-      <p><a href="#/projects/agent-portal-3">Agent Portal 3.0 project</a> · <a href="#/projects/assurant-assist">Assurant Assist project</a></p>
-
-      <h2>Growth areas and gaps</h2>
-      <p><strong>${noEv.length}</strong> of ${all.length} requirements have no evidence linked yet. <a href="#/growth">See evidence gaps and next steps</a>.</p>
-      <ul class="tight">${S.data.growth.knownGrowthAreas.map((g) => html`<li><a href="#/criteria/${g.criterionId}">${S.data.byId[g.criterionId].title}</a>: ${g.note}</li>`)}</ul>
-
-      <h2>How to read this site</h2>
-      <ul class="tight">${o.readingNotes.map((n) => html`<li>${n}</li>`)}</ul>
+      ${S.online ? html`<p style="margin-top:20px">${S.ui.evForm === "new" ? "" : html`<button type="button" class="btn" data-act="evn-new">Add evidence</button>`}</p>` : html`<p class="note">Saved edits couldn't be loaded, so editing is off. Refresh to try again.</p>`}
+      ${S.ui.evForm === "new" ? evidenceForm(null) : ""}
+      <p class="muted">Each entry has its own anchor. On the Assessment page, use "Edit evidence" on a row to link to an entry; the link opens it here in a new tab.</p>
+      ${groups.map(([name, list]) => list.length ? html`<h2>${name} (${list.length})</h2>${list.map((e) => evidenceBlock(e, { editable: true }))}` : "")}
     </div>`;
   }
 
   function viewCriterion(id) {
     const c = S.data.byId[id];
     if (!c) return viewNotFound();
-    const a = asmt(id), ev = evidenceFor(id);
+    const a = asmt(id), cur = ratingOf(id), ev = evidenceFor(id);
     const idx = S.data.all.findIndex((x) => x.id === id);
     const prev = S.data.all[idx - 1], next = S.data.all[idx + 1];
-    const stateLabel = { none: "No justification written yet", draft: "Draft", final: "Final" }[a.justificationState];
+    const links = evLinksOf(id).map(linkItem).filter((x) => x !== "");
     return withSidebar(c.catId, html`
       <p class="crumbs" style="margin-top:0"><a href="#/assessment/${c.catId}">${c.catName}</a> › Requirement detail</p>
       <h1 style="font-size:1.8rem">${c.title}</h1>
@@ -229,7 +400,7 @@
       <h2>Official expectations</h2>
       <div class="two-col">
         <div class="exp-block"><h3>UXD expectation</h3><p class="val">${c.uxd || "Not specified in the workbook"}</p></div>
-        <div class="exp-block sr"><h3>Sr UXD expectation</h3><p class="val">${c.srUxd}</p></div>
+        <div class="exp-block sr"><h3>Sr UXD expectation</h3><p class="val">${levelFromText(c.srUxd) ? levelPill(c.srUxd.trim()) : c.srUxd}</p></div>
       </div>
 
       <h2>Prior-year information</h2>
@@ -239,15 +410,14 @@
         <p style="margin:0"><strong>Historical notes:</strong> ${c.priorNotes || html`<span class="empty">None recorded</span>`}</p>
       </div>
 
-      <h2>Current assessment</h2>
-      <p>${statusBadge(a.status)} <span class="tag">${stateLabel}</span>${a.confidence ? html` <span class="tag">Confidence: ${a.confidence}</span>` : ""}</p>
-      <h3>Promotion justification</h3>
-      ${a.justification ? html`<p class="verbatim">${a.justification}</p>`
-        : html`<p class="empty">Not written yet. It will be added once it can be grounded in specific, sourced work.</p>`}
-      ${a.developmentNotes ? html`<h3>Development notes</h3><p class="verbatim">${a.developmentNotes}</p>` : ""}
+      <h2>My assessment</h2>
+      <p>${cur ? levelPill(cur) : html`<span class="lvl-pill lvl-none">Not assessed</span>`} <a href="#/assessment/${c.catId}">Change it on the Assessment page</a></p>
+      ${a.justification ? html`<h3>Promotion justification</h3><p class="verbatim">${a.justification}</p>` : ""}
 
-      <h2>Evidence (${ev.length})</h2>
-      ${ev.length ? ev.map((e) => evidenceBlock(e, id)) : html`<p class="empty">No evidence linked yet. <span class="tag gap">Evidence gap</span></p>`}
+      <h2>Supporting evidence</h2>
+      ${evTextOf(id) ? html`<p>${evTextOf(id)}</p>` : html`<p class="empty">No evidence added yet.</p>`}
+      ${links.length ? html`<ul class="ev-links">${links.map((l) => html`<li>${l}</li>`)}</ul>` : ""}
+      ${ev.length ? html`<h2>Related evidence entries (${ev.length})</h2>${ev.map((e) => evidenceBlock(e))}` : ""}
 
       <div class="pager no-print">
         ${prev ? html`<a href="#/criteria/${prev.id}">← ${cut(prev.title, 50)}</a>` : html`<span></span>`}
@@ -293,7 +463,7 @@
 
       <h2>Original artifacts</h2>
       <ul>${p.artifacts.map((a) => html`<li>${safeUrl(a.url)
-        ? html`<a href="${safeUrl(a.url)}" rel="noopener">${a.label}</a>`
+        ? html`<a href="${safeUrl(a.url)}" target="_blank" rel="noopener noreferrer">${a.label}</a>`
         : html`${a.label} <span class="tag gap">${a.note}</span>`}</li>`)}</ul>
 
       <h2>Next steps</h2>
@@ -301,67 +471,162 @@
     </div>`;
   }
 
-  function viewGrowth() {
-    const g = S.data.growth, { all } = S.data;
-    const none = all.filter((c) => !evidenceFor(c.id).length);
-    const weak = all.filter((c) => evidenceFor(c.id).length && !sourcedCount(c.id));
-    const gw = S.data.criteria.growthWorksheet;
-    const list = (arr) => arr.length
-      ? html`<ul class="tight">${arr.map((c) => html`<li><a href="#/criteria/${c.id}">${c.title}</a> <span class="muted">(${c.catName})</span></li>`)}</ul>`
-      : html`<p class="empty">None.</p>`;
-    return html`<div class="page">
-      <h1>Growth and development</h1>
-      <p class="lead">Open questions, evidence gaps and concrete next steps. Gaps are listed plainly so the assessment stays honest.</p>
+  const viewNotFound = () => html`<div class="page"><h1>Page not found</h1><p><a href="#/assessment">Back to assessment</a></p></div>`;
 
-      <h2>Evidence gaps</h2>
-      <div class="grid two">
-        <div><h3 style="margin-top:0">No evidence linked (${none.length})</h3>${list(none)}</div>
-        <div><h3 style="margin-top:0">Evidence linked, but none source-backed yet (${weak.length})</h3>${list(weak)}</div>
-      </div>
-
-      <h2>Known growth areas</h2>
-      <ul class="tight">${g.knownGrowthAreas.map((x) => html`<li><a href="#/criteria/${x.criterionId}">${S.data.byId[x.criterionId].title}</a>: ${x.note}</li>`)}</ul>
-
-      <h2>Open questions</h2>
-      <ul class="tight">${g.openQuestions.map((q) => html`<li>${q}</li>`)}</ul>
-
-      <h2>Next steps</h2>
-      <ol class="tight">${g.nextSteps.map((q) => html`<li>${q}</li>`)}</ol>
-
-      <h2>Workbook growth worksheet</h2>
-      <p class="muted">Preserved from the workbook's secondary worksheet (${gw.worksheet}) as a reference for growth planning.</p>
-      <table class="plain"><tbody>${gw.rows.map((r) => html`<tr><th scope="row" style="width:220px">${r.label}</th><td>${r.value || html`<span class="empty">Empty in the workbook</span>`}</td></tr>`)}</tbody></table>
-    </div>`;
+  // ---------- actions ----------
+  function closeMenus(except) {
+    document.querySelectorAll(".lvl-menu").forEach((m) => {
+      if (m === except) return;
+      m.hidden = true;
+      const b = m.parentElement.querySelector(".lvl-btn");
+      if (b) b.setAttribute("aria-expanded", "false");
+    });
   }
 
-  function viewNotFound() {
-    return html`<div class="page"><h1>Page not found</h1><p><a href="#/assessment">Back to assessment</a></p></div>`;
+  const actions = {
+    "lvl-toggle"(b) {
+      const menu = b.parentElement.querySelector(".lvl-menu");
+      const open = menu.hidden;
+      closeMenus(menu);
+      menu.hidden = !open;
+      b.setAttribute("aria-expanded", String(open));
+      if (open) { const sel = menu.querySelector('[aria-selected="true"]') || menu.querySelector(".lvl-opt"); sel && sel.focus(); }
+    },
+    async "lvl-pick"(b) {
+      const cid = b.dataset.cid, v = b.dataset.v;
+      const prev = S.fs.a[cid] ? { ...S.fs.a[cid] } : null;
+      S.fs.a[cid] = { ...(S.fs.a[cid] || {}), rating: v };
+      refreshRow(cid);
+      const ok = await save(fsSet(`a_${cid}`, { rating: v }, ["rating"]));
+      if (!ok) { if (prev) S.fs.a[cid] = prev; else delete S.fs.a[cid]; refreshRow(cid); }
+    },
+    "ev-edit"(b) {
+      const cid = b.dataset.cid;
+      S.ui.ev[cid] = { text: evTextOf(cid), links: evLinksOf(cid).map((l) => ({ ...l })) };
+      refreshRow(cid);
+      const ta = $(`#ta-${cid}`); ta && ta.focus();
+    },
+    "ev-cancel"(b) { delete S.ui.ev[b.dataset.cid]; refreshRow(b.dataset.cid); },
+    "ev-rm"(b) { S.ui.ev[b.dataset.cid].links.splice(Number(b.dataset.i), 1); refreshRow(b.dataset.cid); },
+    "ev-add-ev"(b) {
+      const cid = b.dataset.cid, sel = $(`[data-pick="${cid}"]`), title = $(`[data-etitle="${cid}"]`).value.trim();
+      if (!sel.value) return;
+      const d = S.ui.ev[cid];
+      if (!d.links.some((l) => l.t === "evidence" && l.id === sel.value)) d.links.push({ t: "evidence", id: sel.value, label: title, url: "" });
+      refreshRow(cid);
+    },
+    "ev-add-url"(b) {
+      const cid = b.dataset.cid, lbl = $(`[data-lbl="${cid}"]`).value.trim(), url = $(`[data-url="${cid}"]`).value.trim();
+      if (!safeUrl(url)) { toast("Enter a link that starts with http:// or https://", true); return; }
+      S.ui.ev[cid].links.push({ t: "url", label: lbl || url, url, id: "" });
+      refreshRow(cid);
+    },
+    async "ev-save"(b) {
+      const cid = b.dataset.cid, d = S.ui.ev[cid];
+      const links = d.links.filter((l) => l.t === "url" || evById(l.id)).map((l) => ({ t: l.t, id: l.id || "", label: l.label || "", url: l.url || "" }));
+      const ok = await save(fsSet(`a_${cid}`, { evidenceText: d.text, evidenceLinks: links }, ["evidenceText", "evidenceLinks"]));
+      if (!ok) return;
+      S.fs.a[cid] = { ...(S.fs.a[cid] || {}), evidenceText: d.text, evidenceLinks: links };
+      delete S.ui.ev[cid];
+      refreshRow(cid);
+    },
+    "cmt-add"(b) { S.ui.cmtOpen[b.dataset.cid] = true; S.ui.cmtEdit = null; refreshRow(b.dataset.cid); const t = $(`tbody[data-cid="${b.dataset.cid}"] [data-ctext]`); t && t.focus(); },
+    "cmt-cancel"(b) { S.ui.cmtOpen[b.dataset.cid] = false; S.ui.cmtEdit = null; refreshRow(b.dataset.cid); },
+    "cmt-edit"(b) { S.ui.cmtEdit = b.dataset.id; refreshRow(b.dataset.cid); },
+    async "cmt-save"(b) {
+      const cid = b.dataset.cid, id = b.dataset.id, scope = $(`tbody[data-cid="${cid}"]`);
+      const text = $("[data-ctext]", scope).value.trim(), name = $("[data-cname]", scope).value.trim();
+      if (!text) { toast("Write a comment first.", true); return; }
+      store.set("ux-name", name);
+      if (id) {
+        if (!(await save(fsSet(id, { text, name }, ["text", "name"])))) return;
+        const m = S.fs.c.find((x) => x.id === id); m.text = text; m.name = name;
+      } else {
+        const doc = { cid, text, name, created: new Date().toISOString() };
+        const nid = "c_" + uid();
+        if (!(await save(fsSet(nid, doc)))) return;
+        S.fs.c.push({ id: nid, ...doc });
+      }
+      S.ui.cmtOpen[cid] = false; S.ui.cmtEdit = null;
+      refreshRow(cid);
+    },
+    async "cmt-del"(b) {
+      if (!confirm("Delete this comment?")) return;
+      if (!(await save(fsDel(b.dataset.id), "Deleted"))) return;
+      S.fs.c = S.fs.c.filter((x) => x.id !== b.dataset.id);
+      refreshRow(b.dataset.cid);
+    },
+    "evn-new"() { S.ui.evForm = "new"; render(true); },
+    "evn-edit"(b) { S.ui.evForm = b.dataset.id; render(true); },
+    "evn-cancel"() { S.ui.evForm = null; render(true); },
+    async "evn-save"(b) {
+      const title = $("#evf-title").value.trim(), url = $("#evf-srcurl").value.trim();
+      if (!title) { toast("Add a title.", true); return; }
+      if (url && !safeUrl(url)) { toast("The source link must start with http:// or https://", true); return; }
+      const f = { title, type: $("#evf-type").value, project: $("#evf-project").value, contribution: $("#evf-contribution").value.trim(),
+        outcome: $("#evf-outcome").value.trim(), sourceLabel: $("#evf-srclabel").value.trim(), sourceUrl: url };
+      let id = b.dataset.id;
+      if (!id) { id = "x-" + uid(); f.custom = true; f.created = new Date().toISOString(); }
+      if (!(await save(fsSet(`e_${id}`, f)))) return;
+      S.fs.e[id] = { ...(S.fs.e[id] || {}), ...f };
+      S.ui.evForm = null;
+      render(true);
+    },
+    async "evn-del"(b) {
+      const e = evById(b.dataset.id);
+      if (!confirm(`Delete "${e.title}"? Links to it will disappear from the assessment.`)) return;
+      if (e.custom) {
+        if (!(await save(fsDel(`e_${e.id}`), "Deleted"))) return;
+        delete S.fs.e[e.id];
+      } else {
+        if (!(await save(fsSet(`e_${e.id}`, { deleted: true }, ["deleted"]), "Deleted"))) return;
+        S.fs.e[e.id] = { ...(S.fs.e[e.id] || {}), deleted: true };
+      }
+      S.ui.evForm = null;
+      render(true);
+    },
+
+  };
+
+  function onClick(e) {
+    const b = e.target.closest("[data-act]");
+    if (!b) { if (!e.target.closest(".lvl")) closeMenus(); return; }
+    const fn = actions[b.dataset.act];
+    if (fn) fn(b);
+  }
+  function onInput(e) {
+    const t = e.target.closest("[data-draft]");
+    if (t && S.ui.ev[t.dataset.cid]) S.ui.ev[t.dataset.cid].text = t.value;
   }
 
   // ---------- router ----------
-  function render() {
+  function render(keepScroll) {
     if (!S.data) return;
     const [sec, id] = (location.hash.replace(/^#\/?/, "") || "").split("/");
-    let view, bind, navKey = sec || "";
+    let view, navKey = sec || "assessment";
     if (!sec || sec === "assessment") { view = viewAssessment(id); navKey = "assessment"; }
-    else if (sec === "evidence") view = viewOverview();
+    else if (sec === "evidence") view = viewEvidence(id);
     else if (sec === "criteria") { view = id ? viewCriterion(id) : viewAssessment(); navKey = "assessment"; }
-    else if (sec === "review") { view = viewReview(); navKey = "assessment"; bind = () => document.getElementById("print-btn").addEventListener("click", () => window.print()); }
     else if (sec === "projects") view = id ? viewProject(id) : viewProjects();
-    else if (sec === "growth") view = viewGrowth();
     else view = viewNotFound();
 
     document.getElementById("main").innerHTML = view.s;
     document.querySelectorAll("#nav a").forEach((a) => {
       if (a.dataset.route === navKey) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
-    if (bind) bind();
     document.title = "Senior UX Designer Assessment";
-    window.scrollTo(0, 0);
+    if (sec === "evidence" && id && $(`#evi-${CSS.escape(id)}`)) {
+      const el = $(`#evi-${CSS.escape(id)}`);
+      el.scrollIntoView({ block: "start" });
+      el.classList.add("flash");
+    } else if (keepScroll !== true) window.scrollTo(0, 0);
   }
 
-  window.addEventListener("hashchange", render);
-  load().then(render).catch((err) => {
+  document.addEventListener("click", onClick);
+  document.addEventListener("input", onInput);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenus(); });
+  window.addEventListener("hashchange", () => { S.ui.evForm = null; render(); });
+  load().then(() => render()).catch((err) => {
     document.getElementById("main").innerHTML =
       `<div class="page"><p class="note"><strong>Could not load the data.</strong> ${esc(err.message)}<br>Serve this folder over HTTP (for example <code>python3 -m http.server</code>) instead of opening index.html directly.</p></div>`;
   });

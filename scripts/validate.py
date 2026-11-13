@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 D = ROOT / "data"
-STATUSES = {"not-assessed", "developing", "meets", "exceeds"}
+RATINGS = {"", "Mastery", "Proficient", "Competent", "Novice"}
 J_STATES = {"none", "draft", "final"}
 V_LEVELS = {"source-document", "brief-only", "estimate"}
 errors = []
@@ -34,12 +34,10 @@ if set(assess) != set(ids):
     errors.append(f"assessments.json ids differ from criteria: {sorted(set(assess) ^ set(ids))}")
 
 for cid, a in assess.items():
-    if a["status"] not in STATUSES:
-        errors.append(f"{cid}: bad status {a['status']}")
+    if a["rating"] not in RATINGS:
+        errors.append(f"{cid}: bad rating {a['rating']}")
     if a["justificationState"] not in J_STATES:
         errors.append(f"{cid}: bad justificationState")
-    if a["status"] != "not-assessed" and not a["justification"].strip():
-        errors.append(f"{cid}: status set without a justification")
     if a["justificationState"] != "none" and not a["justification"].strip():
         errors.append(f"{cid}: justificationState set but justification empty")
 
