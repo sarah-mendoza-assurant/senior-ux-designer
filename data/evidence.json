@@ -117,7 +117,7 @@
       "outcome": "Not yet documented with a specific example of a requirement that changed.",
       "criteria": ["ux-05", "biz-03", "pt-05", "ui-06"],
       "type": "Process",
-      "source": { "label": "Project brief; case study p. 8 for the address search constraint", "pages": "", "url": null },
+      "source": { "label": "Project brief; UX Case Study - HW Agent Portal - Redesign Overview.pdf", "pages": "p. 8 (address search constraint)", "url": null },
       "date": null,
       "verification": { "level": "brief-only", "note": "Add one or two concrete examples of a challenged requirement and the result." }
     },

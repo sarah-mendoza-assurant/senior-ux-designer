@@ -14,6 +14,11 @@ This repository is a **read-only** static website (plain HTML, CSS and JS) for S
 - Do not set a status to `developing`, `meets` or `exceeds` without a justification grounded in linked evidence. Never auto-generate "exceeds".
 - Prior-year ratings and notes (columns E and F of the workbook) are historical and stay separate from current assessments.
 
+## Design
+- Layout: sticky left sidebar of the workbook categories; main area is a four-column table (Requirement 20%, Sr UXD expectation 24%, My assessment 12%, Supporting evidence 44%). No accordions, expandable rows or editing UI. The table stacks vertically on mobile.
+- Font: Open Sans only (loaded in `index.html`). Colors are CSS variables at the top of `assets/styles.css`; swap them there when brand colors are supplied.
+- The "Supporting evidence" cell shows `evidenceSummary` (1-3 sentences) from `assessments.json`, plus text links. The summary may only restate facts from the linked items in `evidence.json`. Update it whenever the linked evidence changes. Add real URLs as `links: [{label, url}]` on the assessment, or as `source.url` on an evidence item; source names without a URL are shown as plain text.
+
 ## Where content lives (`data/`)
 | File | Purpose |
 |---|---|
@@ -22,7 +27,7 @@ This repository is a **read-only** static website (plain HTML, CSS and JS) for S
 | `evidence.json` | Central evidence library. One item can support many criteria through its `criteria` array |
 | `projects.json` | Agent Portal 3.0 (featured) and Assurant Assist pages, limitations, artifact links |
 | `growth.json` | Open questions, known growth areas, next steps |
-| `overview.json` | Overview page text and the featured evidence order |
+| `overview.json` | Heading and intro paragraph shown at the top of the Assessment page, the summary on the Evidence tab, and the featured evidence order |
 
 Evidence gaps on the Growth page are derived automatically from `evidence.json`.
 
