@@ -306,7 +306,6 @@
     const editing = S.ui.evForm === e.id;
     if (editing) return html`<div id="evi-${e.id}">${evidenceForm(e)}</div>`;
     return html`<article class="block ev" id="evi-${e.id}">
-      <div class="chips"><span class="tag">${e.type}</span>${verifTag(e.verification)}${e.date ? html`<span class="tag">${fmtEvDate(e.date)}</span>` : ""}</div>
       <h3>${e.title}</h3>
       <dl>
         <dt>Project</dt><dd>${projName(e.project)}</dd>
@@ -373,7 +372,6 @@
       </div>
       ${S.online ? html`<p style="margin-top:20px">${S.ui.evForm === "new" ? "" : html`<button type="button" class="btn" data-act="evn-new">Add evidence</button>`}</p>` : html`<p class="note">Saved edits couldn't be loaded, so editing is off. Refresh to try again.</p>`}
       ${S.ui.evForm === "new" ? evidenceForm(null) : ""}
-      <p class="muted">Each entry has its own anchor. On the Assessment page, use "Edit evidence" on a row to link to an entry; the link opens it here in a new tab.</p>
       ${groups.map(([name, list]) => list.length ? html`<h2>${name} (${list.length})</h2>${list.map((e) => evidenceBlock(e, { editable: true }))}` : "")}
     </div>`;
   }
@@ -686,6 +684,7 @@
     else view = viewNotFound();
 
     document.getElementById("main").innerHTML = view.s;
+    document.querySelector(".site-header").hidden = sec === "evidence";
     document.querySelectorAll("#nav a").forEach((a) => {
       if (a.dataset.route === navKey) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
