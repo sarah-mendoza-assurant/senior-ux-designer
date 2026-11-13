@@ -12,7 +12,7 @@ Static website (plain HTML, CSS and JS) for Sarah Mendoza's Senior UX Designer p
 - Keep estimates labeled as estimates. Keep pre-launch validation separate from post-launch impact. Agent Portal 3.0 is in development: claim no post-launch gains.
 - Assurant Assist: Sarah owned the device journey and collaborated on the rest. Never claim ownership of the whole application.
 - Do not call design system extensions officially published enterprise components without evidence.
-- Prior-year ratings and notes (columns E and F of the workbook) are historical and stay separate from the current assessment.
+- Prior-year ratings and notes (columns E and F of the workbook) are historical and stay separate from the current assessment. Spelling fixes to those columns live in `TYPO_FIXES` in `scripts/import_workbook.py`, so they survive a re-import.
 - Keep user-entered text escaped when rendering (the `html` helper does this) and only allow `http(s)` links.
 
 ## How the site works
@@ -20,7 +20,7 @@ Static website (plain HTML, CSS and JS) for Sarah Mendoza's Senior UX Designer p
 - **My assessment** is a dropdown of the workbook's mastery scale (Mastery, Proficient, Competent, Novice) with a "Not assessed" default. The list shows each title with its workbook meaning; the chosen value shows as a styled pill. The Sr UXD expectation column is fixed text and shows a matching styled pill when its text is exactly one of those levels.
 - **Supporting evidence**: editable text plus links. A link is either an external URL or an entry from the Evidence tab; entry links open `#/evidence/<id>` in a new tab and scroll to that entry.
 - **Comments**: "Add comment" under each requirement adds its own row tied to that requirement.
-- **Navigation**: no top nav; Assessment is the home page. Evidence is a small footer link, and its page has a Back to assessment button. Project pages (`#/projects`) are kept but not linked anywhere; evidence shows project names as plain text.
+- **Navigation**: no top nav; Assessment is the home page. Evidence has no visible link (reach it at `#/evidence`); its page has a Back to assessment button. Project pages (`#/projects`) are kept but not linked anywhere; evidence shows project names as plain text.
 - **Evidence page**: all evidence entries (baseline from `data/evidence.json` plus entries added on the site). Anyone can add or edit entries; only added entries can be deleted.
 - Font: Open Sans only, self-hosted in `assets/fonts` (SIL OFL, `OFL.txt`). Colors are CSS variables at the top of `assets/styles.css`.
 

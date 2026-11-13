@@ -3,7 +3,7 @@
 A website presenting Sarah Mendoza's work against Assurant's Senior UX Designer expectations.
 
 - **Assessment**: the 35 workbook requirements by category in a four-column table. Rate yourself with the My assessment dropdown, edit supporting evidence and links, and add comments.
-- **Evidence** (footer link, with a Back to assessment button): all evidence entries; add or edit entries, which supporting-evidence links can point to
+- **Evidence** (not linked; open `#/evidence`, with a Back to assessment button): all evidence entries; add or edit entries, which supporting-evidence links can point to
 
 Edits are saved to a shared Firestore database, so they persist and everyone with the link sees them. **Anyone with the link can edit.** See `CLAUDE.md` for the data layout and rules.
 

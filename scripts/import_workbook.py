@@ -34,6 +34,24 @@ CATEGORY_IDS = {
 }
 
 
+# Spelling corrections to the historical prior-year columns (E, F) only. Requirement and
+# expectation wording is never changed. The workbook itself is not modified.
+TYPO_FIXES = {
+    "Knowledgable": "Knowledgeable",
+    "Reciept": "Receipt",
+    "We're still now there": "We're still not there",
+    "beyond novive": "beyond novice",
+}
+
+
+def fix_typos(text):
+    if not isinstance(text, str):
+        return text
+    for bad, good in TYPO_FIXES.items():
+        text = text.replace(bad, good)
+    return text
+
+
 def read_workbook(path):
     z = zipfile.ZipFile(path)
     shared = []
@@ -87,8 +105,8 @@ def main(path):
                 "description": "\n".join(lines[1:]),
                 "srUxd": c,
                 "uxd": d,
-                "priorRating": e,
-                "priorNotes": f,
+                "priorRating": fix_typos(e),
+                "priorNotes": fix_typos(f),
             }
         )
 

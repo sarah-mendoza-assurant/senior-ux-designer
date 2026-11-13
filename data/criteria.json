@@ -255,7 +255,7 @@
           "description": "",
           "srUxd": "Expert",
           "uxd": "Proficient",
-          "priorRating": "Knowledgable",
+          "priorRating": "Knowledgeable",
           "priorNotes": null
         },
         {
@@ -289,7 +289,7 @@
           "srUxd": "Influences",
           "uxd": "Support and recommends",
           "priorRating": "Support and recommends",
-          "priorNotes": "We're still now there"
+          "priorNotes": "We're still not there"
         },
         {
           "id": "pt-05",
@@ -317,7 +317,7 @@
           "description": "",
           "srUxd": "Owns end to end within the product",
           "uxd": "Owns several design features or mid-sized projects",
-          "priorRating": "Project Edify - Onboarding - Reciept Upload - Featured Content",
+          "priorRating": "Project Edify - Onboarding - Receipt Upload - Featured Content",
           "priorNotes": "More confidence w/data to back up"
         },
         {
@@ -368,7 +368,7 @@
           "description": "",
           "srUxd": "Competent",
           "uxd": "Novice",
-          "priorRating": "I would say beyond novive for this - Competent - working Jeannine now - constantly working with other teams",
+          "priorRating": "I would say beyond novice for this - Competent - working Jeannine now - constantly working with other teams",
           "priorNotes": null
         },
         {
